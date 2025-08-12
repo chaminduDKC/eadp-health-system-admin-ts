@@ -25,7 +25,7 @@ import {styled} from "@mui/material/styles";
 import Dialog from "@mui/material/Dialog";
 import {Alert, Collapse} from "@mui/material";
 import AlertHook from '../../../alert/Alert.ts'
-import axiosInstance from "../../../axios/axiosInstance.ts";
+import axiosInstance, {stopTokenRefreshInterval} from "../../../axios/axiosInstance.ts";
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 
@@ -152,6 +152,7 @@ function ResponsiveAppBar() {
     ];
     const handleLogout = ()=>{
         showAlert("warning-logging-out")
+        stopTokenRefreshInterval();
         setTimeout(()=>{
             localStorage.removeItem("access_token");
             localStorage.removeItem("refresh_token");

@@ -15,7 +15,7 @@ import { SparkLineChart } from "@mui/x-charts/SparkLineChart";
 import { LineChart } from "@mui/x-charts";
 import ReusableModal from "./ReusableModal/ReusableModal.tsx";
 import {useEffect, useState} from "react";
-import axiosInstance from "../../../axios/axiosInstance.ts";
+import axiosInstance, {startTokenRefreshInterval} from "../../../axios/axiosInstance.ts";
 import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
 import {DatePicker, LocalizationProvider} from "@mui/x-date-pickers";
 import type {Dayjs} from "dayjs";
@@ -30,8 +30,7 @@ const itemVariant = {
     exit: { opacity: 0, y: -20 },
 };
 
-const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-const patientsData = [40, 55, 65, 50, 80, 95];
+
 
 type Patient = {
     id:string,
@@ -54,6 +53,10 @@ type TimeSlot = {
 
 type Hospital = {
     hospitalName:string
+}
+type MonthlyPatientData = {
+    month:string,
+    patients:number
 }
 const Home = () => {
 
@@ -84,13 +87,19 @@ const Home = () => {
     const [time, setTime] = useState<string>("")
     const [reason, setReason] = useState<string>("Any Reason")
     const [loading, setLoading] = useState<boolean>(false);
+    const [numberOfMonths, setNumberOfMonths] = useState<number>(6);
+    const [patientsData, setPatientsData] = useState<MonthlyPatientData[]>([]);
+
 
 
     useEffect(() => {
+        startTokenRefreshInterval();
+        fetchMonthlyPatientOverview(numberOfMonths);
         fetchPatients()
         fetchSpecializations()
         fetchHospitals()
     }, []);
+
 
     const fetchPatients = async () => {
         try {
@@ -224,6 +233,20 @@ const Home = () => {
         }
     }
 
+    const fetchMonthlyPatientOverview = async (numberOfMonths:number) =>{
+        if(numberOfMonths > 12){
+            showAlert("You can see data upto 12 months only")
+            return
+        }
+        axiosInstance.get(`${patientUrl}/find-patients-by-month`, {params:{NumberOfMonth:numberOfMonths}}).then(res=>{
+            console.log(res.data.data)
+            setPatientsData(res.data.data);
+        }).catch(res=>{
+            showAlert("Failed to load patient overview data. Try again")
+            console.log("error")
+            console.log(res)
+        })
+    }
     const statsData = [
         {
             label: "Appointments",
@@ -367,6 +390,8 @@ const Home = () => {
             }, 2000)
             setLoading(false);
         } else {
+            const date = new Date().toLocaleDateString('en-CA')
+            console.log(date)
             const request = {
                 name:fullName,
                 email:email,
@@ -374,7 +399,8 @@ const Home = () => {
                 address:address,
                 phone:phone,
                 gender:gender,
-                age:age
+                age:age,
+                createdDate:date
             };
             try {
                 await axiosInstance.post("http://localhost:9090/api/users/register-patient",
@@ -383,6 +409,7 @@ const Home = () => {
                 setLoading(false);
                 setOpenCreatePatientModal(false);
                 clearPatientDoctorData();
+                fetchMonthlyPatientOverview(numberOfMonths);
             } catch (e) {
                 showAlert("Failed to create patient. Try again")
                 setLoading(false);
@@ -1275,23 +1302,60 @@ const Home = () => {
                 }}>
                     <Card sx={{ borderRadius: 3, boxShadow: 3 }}>
                         <CardContent>
+                            <Box display="flex" alignItems="center" justifyContent="space-between">
                             <Typography variant="h6" mb={2}>
                                 Monthly Patients Overview
                             </Typography>
+                                <Box display="flex" alignItems="center" justifyContent="space-between">
+                                    <TextField
+                                        value={numberOfMonths}
+                                        sx={{
+                                            width: "80px",
+                                            "& .MuiOutlinedInput-root": {
+                                                "& fieldset": {
+                                                    border: "none",        // Remove the default border
+                                                },
+                                                "&:hover fieldset": {
+                                                    border: "none",        // Remove border on hover
+                                                },
+                                                "&.Mui-focused fieldset": {
+                                                    border: "none",        // Remove border on focus
+                                                },
+                                            },
+                                            "& .MuiInputBase-input": {
+                                                outline: "none",          // Remove the default outline on input
+                                            },
+                                        }}
+                                        type="number"
+                                        onChange={(e)=>{
+                                            setNumberOfMonths(e.target.value)
+                                        }}
+                                    />
+                                    <Button onClick={()=>{
+                                        fetchMonthlyPatientOverview(numberOfMonths);
+                                    }}>Change No: of months </Button>
+                                </Box>
+
+                            </Box>
                             <Divider sx={{ mb: 2 }} />
                             <LineChart
                                 height={300}
                                 series={[
                                     {
-                                        data: patientsData,
+                                        data: patientsData.map(data=> Math.floor(data.patients)),
                                         label: "Patients",
                                         color: theme.palette.primary.main,
+                                    },
+                                ]}
+                                yAxis={[
+                                    {
+                                        valueFormatter: (value:number) => Math.round(value).toString(), // Remove decimals
                                     },
                                 ]}
                                 xAxis={[
                                     {
                                         scaleType: "point",
-                                        data: months,
+                                        data: patientsData.map(data=> data.month.slice(0,3)),
                                     },
                                 ]}
                             />
