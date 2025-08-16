@@ -21,7 +21,6 @@ import {DatePicker, LocalizationProvider} from "@mui/x-date-pickers";
 import type {Dayjs} from "dayjs";
 import MenuItem from "@mui/material/MenuItem";
 import {Visibility, VisibilityOff} from "@mui/icons-material";
-import {string} from "prop-types";
 
 
 const itemVariant = {
@@ -58,12 +57,17 @@ type MonthlyPatientData = {
     month:string,
     patients:number
 }
+
 const Home = () => {
 
-    const userurl = import.meta.env.VITE_USER_API;
+    const userUrl = import.meta.env.VITE_USER_API;
     const bookingUrl = import.meta.env.VITE_BOOKING_API;
     const patientUrl = import.meta.env.VITE_PATIENT_API;
     const doctorUrl = import.meta.env.VITE_DOCTOR_API;
+    const specializationUrl = import.meta.env.VITE_SPECIALIZATION_API;
+    const availabilityUrl = import.meta.env.VITE_AVAILABILITY_API;
+    const hospitalUrl = import.meta.env.VITE_HOSPITAL_API;
+    const newsUrl = import.meta.env.VITE_NEWS_API;
 
     const theme = useTheme();
     const { openAlert, alertStatus, showAlert, closeAlert } = AlertHook();
@@ -89,10 +93,30 @@ const Home = () => {
     const [loading, setLoading] = useState<boolean>(false);
     const [numberOfMonths, setNumberOfMonths] = useState<number>(6);
     const [patientsData, setPatientsData] = useState<MonthlyPatientData[]>([]);
+    const [appointmentStatData, setAppointmentStatData] = useState<number[]>([])
+    const [patientStatData, setPatientStatData] = useState<number[]>([])
+    const [appointmentStatCount, setAppointmentStatCount] = useState<number>(0)
+    const [patientStatCount, setPatientStatCount] = useState<number>(0)
 
+    const countTotalApp = (count:number[])=>{
+        let total = 0;
+        for (let i = 0; i < count.length; i++) {
+            total += count[i];
+        }
+        setAppointmentStatCount(total);
+    }
 
+    const countTotalPatient = (count:number[])=>{ // for stat data
+        let total = 0;
+        for (let i = 0; i < count.length; i++) {
+            total += count[i];
+        }
+        setPatientStatCount(total);
+    }
 
     useEffect(() => {
+        fetchPatientsStat()
+        fetchBookingStat();
         startTokenRefreshInterval();
         fetchMonthlyPatientOverview(numberOfMonths);
         fetchPatients()
@@ -103,7 +127,7 @@ const Home = () => {
 
     const fetchPatients = async () => {
         try {
-            const response = await axiosInstance.get("http://localhost:9092/api/patients/find-all-patients",
+            const response = await axiosInstance.get(`${patientUrl}/find-all-patients`,
                 {params: {searchText:"", page: 0, size: 1000}}
             );
             if(response.data.data.patientList.length === 0){
@@ -119,11 +143,12 @@ const Home = () => {
                 setPatients(patientNames);
             }
 
-        } catch (error) {
-            showAlert("Failed to load patients. Try again later");
+        } catch (error:unknown) {
+            showAlert("Failed to load patients. "+error.message);
             setTimeout(()=>{
                 closeAlert()
             }, 2000)
+
             console.log(error)
 
         }
@@ -131,7 +156,7 @@ const Home = () => {
 
     const fetchSpecializations = async ()=>{
         try {
-            const response = await axiosInstance.get("http://localhost:9091/api/specializations/find-all-specializations",{params: {searchText:""}}
+            const response = await axiosInstance.get(`${specializationUrl}/find-all-specializations`,{params: {searchText:""}}
             );
             if(response.data.data.length === 0){
                 showAlert("No specialization available now. Try again")
@@ -144,7 +169,7 @@ const Home = () => {
 
         } catch (error) {
             console.error("Error fetching specializations:", error);
-            showAlert("Failed to load specializations. Try again")
+            showAlert("Failed to load specializations. "+error.message)
             setTimeout(()=>{
                 closeAlert()
             }, 2000)
@@ -153,7 +178,7 @@ const Home = () => {
 
     const fetchDoctorsBySpecialization = async (specialization = specName)=>{
         try {
-            const response = await axiosInstance.get(`http://localhost:9091/api/doctors/find-doctors-by-specialization`,{params: {specialization}}
+            const response = await axiosInstance.get(`${doctorUrl}/find-doctors-by-specialization`,{params: {specialization}}
             );
             if(response.data.data.length === 0){
                 showAlert("No doctors available for this specialization")
@@ -166,7 +191,7 @@ const Home = () => {
             }
 
         } catch (error) {
-            showAlert("Failed load doctors. Try again later")
+            showAlert("Failed load doctors. "+error.message)
             setTimeout(()=>{
                 closeAlert()
             }, 2000)
@@ -178,8 +203,7 @@ const Home = () => {
     const [availableDatesByDoctor, setAvailableDatesByDoctor] = useState([]);
     const getAvailableDatesByDoctor = async (docId:string)=>{
         try {
-            const response = await axiosInstance.get(`http://localhost:9093/api/bookings/get-available-dates-by-doctor/${docId}`)
-            console.log(response.data.data)
+            const response = await axiosInstance.get(`${bookingUrl}/get-available-dates-by-doctor/${docId}`)
             if(response.data.data?.length === 0){
                 setAvailableSlots([])
                 showAlert("No dates available for selected doctor. Try another doctor")
@@ -191,6 +215,7 @@ const Home = () => {
                 setAvailableDatesByDoctor(response.data.data)
             }
         } catch (e) {
+            console.log(e)
             showAlert("Failed to load dates. Try again")
             setTimeout(()=>{
                 closeAlert()
@@ -200,10 +225,8 @@ const Home = () => {
     }
 
     const fetchTimeSlots = async (docId:string, date:string) => {
-        console.log("doc id id in method "+docId)
-        console.log("date in method "+date)
         try {
-            const response = await axiosInstance.get(`http://localhost:9093/api/availabilities/get-availabilities-by-date-and-doctor/${docId}`, {
+            const response = await axiosInstance.get(`${availabilityUrl}/get-availabilities-by-date-and-doctor/${docId}`, {
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${localStorage.getItem("access_token")}`
@@ -219,12 +242,14 @@ const Home = () => {
                 return[];
             } else {
                 const slots:TimeSlot = response.data.data.map((slot:TimeSlot, idx:number) => ({id:idx, name: slot}));
+                // @ts-ignore
                 setAvailableSlots(slots);
                 return slots;
             }
 
-        } catch (error) {
+        } catch (err) {
             showAlert("Failed to load time slots. Try again later");
+            console.log(err)
             setAvailableSlots([]);
             setTimeout(()=>{
                 closeAlert()
@@ -239,42 +264,60 @@ const Home = () => {
             return
         }
         axiosInstance.get(`${patientUrl}/find-patients-by-month`, {params:{NumberOfMonth:numberOfMonths}}).then(res=>{
-            console.log(res.data.data)
             setPatientsData(res.data.data);
         }).catch(res=>{
             showAlert("Failed to load patient overview data. Try again")
-            console.log("error")
             console.log(res)
+        })
+    }
+
+    const fetchBookingStat = async ()=>{
+        axiosInstance.get(`${bookingUrl}/get-bookings-by-date`).then(res=>{
+            setAppointmentStatData(res.data.data)
+            countTotalApp(res.data.data)
+        }).catch(err=>{
+            showAlert("Failed to load some data. try again")
+            console.log(err)
+        })
+    }
+
+    const fetchPatientsStat = async ()=>{
+        axiosInstance.get(`${patientUrl}/find-patients-by-date`).then(res=>{
+            setPatientStatData(res.data.data)
+            countTotalPatient(res.data.data)
+        }).catch(err=>{
+            showAlert("Failed to load some data. Try again")
+            console.log(err)
         })
     }
     const statsData = [
         {
-            label: "Appointments",
-            value: "24",
+            label: "Appointments for past 10 days",
+            value: appointmentStatCount,
             icon: <EventIcon />,
-            iconColor: "#42a5f5", // Blue
-            chartData: [3, 5, 7, 6, 8, 9, 11],
+            iconColor: "#42a5f5",
+            chartData: appointmentStatData,
         },
         {
-            label: "Patients Today",
-            value: "18",
+            label: "Patients for past 10 days",
+            value: patientStatCount,
             icon: <GroupIcon />,
-            iconColor: "#66bb6a", // Green
-            chartData: [3, 5, 7, 6, 8, 9, 11],
-        },
-        {
-            label: "New Messages",
-            value: "5",
-            icon: <NotificationsActiveIcon />,
-            iconColor: "#ffa726", // Orange
-            chartData: [1, 3, 2, 4, 3, 5, 6],
+            iconColor: "#66bb6a",
+            chartData: patientStatData,
         },
         {
             label: "Doctors Online",
-            value: "3",
+            value: 0,
             icon: <LocalHospitalIcon />,
-            iconColor: "#ef5350", // Red
-            chartData: [2, 3, 2, 5, 4, 6, 7],
+            iconColor: "#ef5350",
+            chartData:[0],
+        },
+        {
+            label: "New Messages",
+            value: 0,
+            icon: <NotificationsActiveIcon />,
+            iconColor: "#ffa726",
+            chartData: [0],
         },
     ];
     const clearAppointmentData = ()=>{
@@ -316,16 +359,18 @@ const Home = () => {
             }
 
             try {
-                await axiosInstance.post("http://localhost:9093/api/bookings/create-booking", bookingRequest).then((res)=>{
+                await axiosInstance.post(`${bookingUrl}/create-booking`, bookingRequest).then(()=>{
                     setLoading(false);
                     setOpenAppointmentModal(false);
                     clearAppointmentData();
                     showAlert("Appointment created successfully")
+                    fetchBookingStat();
                 });
 
             } catch (e) {
                 setLoading(false);
                 showAlert("Failed to create Appointment")
+                console.log(e)
                 setTimeout(()=>{
                     closeAlert()
                 },2000)
@@ -391,7 +436,6 @@ const Home = () => {
             setLoading(false);
         } else {
             const date = new Date().toLocaleDateString('en-CA')
-            console.log(date)
             const request = {
                 name:fullName,
                 email:email,
@@ -403,7 +447,7 @@ const Home = () => {
                 createdDate:date
             };
             try {
-                await axiosInstance.post("http://localhost:9090/api/users/register-patient",
+                await axiosInstance.post(`${userUrl}/register-patient`,
                     request);
                 showAlert("Patient created successfully")
                 setLoading(false);
@@ -412,6 +456,7 @@ const Home = () => {
                 fetchMonthlyPatientOverview(numberOfMonths);
             } catch (e) {
                 showAlert("Failed to create patient. Try again")
+                console.log(e)
                 setLoading(false);
                 setTimeout(()=>{
                     closeAlert();
@@ -432,7 +477,7 @@ const Home = () => {
 
     const fetchHospitals =  async ()=>{
 
-        await axiosInstance.get("http://localhost:9091/api/hospitals/find-all-hospitals", {params:{
+        await axiosInstance.get(`${hospitalUrl}/find-all-hospitals`, {params:{
                 searchText:""
             }}).then(res=>{
             setHospitals(res.data.data)
@@ -468,9 +513,7 @@ const Home = () => {
                 licenceNo: licenceNo,
                 city: city
             }
-            console.log(request);
-            await axiosInstance.post(`${userurl}/register-doctor`, request).then(res=>{
-                console.log(res)
+            await axiosInstance.post(`${userUrl}/register-doctor`, request).then(()=>{
                 showAlert("Doctor created successfully")
                 setOpenCreateDoctorModal(false);
                 setLoading(false);
@@ -508,8 +551,7 @@ const Home = () => {
             }, 2000)
             return
         }
-            await axiosInstance.post("http://localhost:9091/api/hospitals/save-hospital", {hospitalName:hospitalName}).then((res)=>{
-                console.log(res.data)
+            await axiosInstance.post(`${hospitalUrl}/save-hospital`, {hospitalName:hospitalName}).then(()=>{
                 setOpenHospitalModal(false)
                 showAlert("New hospital created successfully")
                 setHospitalName("")
@@ -537,8 +579,7 @@ const Home = () => {
             }, 2000)
             return
         }
-        await axiosInstance.post("http://localhost:9091/api/specializations/create-specialization", {specialization:specializationName}).then((res)=>{
-            console.log(res.data)
+        await axiosInstance.post(`${specializationUrl}/create-specialization`, {specialization:specializationName}).then(()=>{
             setOpenSpecializationModal(false)
             showAlert("New specialization created successfully")
             setSpecializationName("")
@@ -572,8 +613,7 @@ const Home = () => {
                 content:newsContent,
                 imageUrl:newsImageUrl
             }
-            await axiosInstance.post("http://localhost:9092/api/news/create-news", newsReq).then(res=>{
-                console.log(res)
+            await axiosInstance.post(`${newsUrl}/create-news`, newsReq).then(()=>{
                 showAlert("News created success")
                 clearPatientDoctorData();
                 setTimeout(()=>{
@@ -589,12 +629,13 @@ const Home = () => {
         }
 
     }
+    // @ts-ignore
     return (
         <Box
             sx={{
                 width: "100%",
                 mx: "auto",
-                marginTop: "60px",
+                marginTop: "100px",
                 marginBottom: {
                     xl: "50px",
                     lg: "460px",
@@ -614,7 +655,8 @@ const Home = () => {
             {/*appointment modal*/}
 
             <ReusableModal onClose={handleCloseAppointmentModal} open={openAppointmentModal} title={"Schedule an Appointment"} actions={[ { label: "Close", onClick: handleCloseAppointmentModal, color: "primary", variant: "outlined" },
-                { label: loading ? "scheduling" :"schedule", disabled:loading, onClick: handleCreateAppointment, color: "secondary", variant:"contained" }]} content={
+                { label: loading ? "scheduling" :"schedule", disabled:loading, onClick: handleCreateAppointment, color: "secondary", variant:"contained" }]}
+                           content={
                 <Box>
                     <Typography>
 
@@ -706,6 +748,7 @@ const Home = () => {
 
                         <LocalizationProvider dateAdapter={AdapterDayjs}>
                             <DatePicker
+
                                 label="Select Date"
                                 value={selectedDate}
                                 onChange={(newValue) => {
@@ -721,10 +764,12 @@ const Home = () => {
                                 disablePast
                                 shouldDisableDate={d => {
                                     if (!doctor || !availableDatesByDoctor || !Array.isArray(availableDatesByDoctor)) return true;
-                                    const iso = d.format('YYYY-MM-DD');
+                                    const iso:string = d.format('YYYY-MM-DD');
+                                    // @ts-ignore
                                     return !availableDatesByDoctor.includes(iso);
                                 }}
                                 format="YYYY-MM-DD"
+
                                 slotProps={{
                                     textField:{fullWidth:true}
                                 }}
@@ -1075,6 +1120,7 @@ const Home = () => {
                 </Box>
             }            />
 
+            {/*create hospital modal*/}
             <ReusableModal onClose={handleCloseHospitalModal} open={openHospitalModal} title="Add new hospital" actions={
                 [
                     {label:"close", onClick:handleCloseHospitalModal, variant:"outlined" },
@@ -1096,7 +1142,8 @@ const Home = () => {
                 </Box>
             }/>
 
-            <ReusableModal onClose={handleCloseSpecializationModal} open={openSpecializationModal} title="Add new hospital" actions={
+            {/*specialization modal*/}
+            <ReusableModal onClose={handleCloseSpecializationModal} open={openSpecializationModal} title="Add new specialization" actions={
                 [
                     {label:"close", onClick:handleCloseHospitalModal, variant:"outlined" },
                     {label: loading ? "creating" : "Create", onClick: handleCreateSpecialization, variant: "contained", disabled:!loading}
@@ -1117,6 +1164,7 @@ const Home = () => {
                 </Box>
             }/>
 
+            {/*news modal*/}
             <ReusableModal onClose={handleCloseNewsModal} open={openCreateNewsModal} title="Add new news" actions={
                 [
                     {label:"close", onClick:handleCloseNewsModal, variant:"outlined" },
@@ -1311,23 +1359,23 @@ const Home = () => {
                                         value={numberOfMonths}
                                         sx={{
                                             width: "80px",
-                                            "& .MuiOutlinedInput-root": {
-                                                "& fieldset": {
-                                                    border: "none",        // Remove the default border
-                                                },
-                                                "&:hover fieldset": {
-                                                    border: "none",        // Remove border on hover
-                                                },
-                                                "&.Mui-focused fieldset": {
-                                                    border: "none",        // Remove border on focus
-                                                },
-                                            },
-                                            "& .MuiInputBase-input": {
-                                                outline: "none",          // Remove the default outline on input
-                                            },
+                                            // "& .MuiOutlinedInput-root": {
+                                            //     "& fieldset": {
+                                            //         border: "none",        // Remove the default border
+                                            //     },
+                                            //     "&:hover fieldset": {
+                                            //         border: "none",        // Remove border on hover
+                                            //     },
+                                            //     "&.Mui-focused fieldset": {
+                                            //         border: "none",        // Remove border on focus
+                                            //     },
+                                            // },
+                                            // "& .MuiInputBase-input": {
+                                            //     outline: "none",          // Remove the default outline on input
+                                            // },
                                         }}
                                         type="number"
-                                        onChange={(e)=>{
+                                        onChange={(e:any)=>{
                                             setNumberOfMonths(e.target.value)
                                         }}
                                     />
@@ -1366,6 +1414,7 @@ const Home = () => {
                 <Box sx={{
                     flex:1
                 }}>
+
                     <Card sx={{ height:"100%", borderRadius: 3, boxShadow: 3,  }}>
                         <CardContent sx={{
                             display:"flex",
@@ -1404,6 +1453,7 @@ const Home = () => {
                             }} fullWidth variant="outlined">Create a news</Button>
                         </CardContent>
                     </Card>
+
                 </Box>
             </Box>
 

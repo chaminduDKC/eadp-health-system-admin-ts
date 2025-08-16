@@ -4,7 +4,7 @@ import CloseIcon from "@mui/icons-material/Close";
 
 interface ActionButton {
     label: string;
-    onClick: () => void ;
+    onClick: (e: React.MouseEvent) => void ;
     color?: "primary" | "secondary" | "error" | "success" | "info" | "warning";
     variant?: "text" | "outlined" | "contained";
     disabled?:boolean;

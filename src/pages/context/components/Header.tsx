@@ -134,13 +134,14 @@ function ResponsiveAppBar() {
     const handleCloseProfileModal = ():void=>{
         setOpenProfileModal(false);
     }
-    const settings = [{
-        name: 'Profile',
-        onClick: () => {
-             handleOpenProfileModal();
-        },
-        id:1
-    },
+    const settings = [
+    //     {
+    //     name: 'Profile',
+    //     onClick: () => {
+    //          handleOpenProfileModal();
+    //     },
+    //     id:1
+    // },
         {
             name:'Logout',
             onClick:() => {
