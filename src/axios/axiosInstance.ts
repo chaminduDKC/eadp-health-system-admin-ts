@@ -84,7 +84,7 @@ let refreshIntervalId: number | null | undefined = null;
 export const startTokenRefreshInterval = () => {
     if (refreshIntervalId) clearInterval(refreshIntervalId);
 
-    const INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+    const INTERVAL_MS =  60 * 1000; // 5 minutes
     refreshIntervalId = setInterval(async () => {
         try {
             await refreshToken();

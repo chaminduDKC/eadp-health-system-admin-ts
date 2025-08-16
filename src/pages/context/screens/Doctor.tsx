@@ -928,11 +928,21 @@ const Doctor = () => {
                         variant="filled"
                         margin="normal"
                         fullWidth
-                        helperText={!isValidPassword ? "Weak Password" :""}
                         required
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={e => setPassword(e.target.value)}
+                    />
+                    <TextField
+
+                        label="Address"
+                        variant="filled"
+                        margin="normal"
+                        fullWidth
+                        required
+                        type="text"
+                        value={address}
+                        onChange={e => setAddress(e.target.value)}
                     />
 
                     <Box sx={{display: "flex", width: "100%", alignItems: "center", justifyContent: "space-between", gap: "10px"}}>
@@ -959,12 +969,32 @@ const Doctor = () => {
                             value={licenceNo}
                             onChange={e => setLicenceNo(e.target.value)}
                         />
+
+                    </Box>
+
+                    <Box sx={{
+                        display: "flex",
+                        width: "100%",
+                        justifyContent: "space-between",
+                        gap: "10px",
+                        marginTop: "12px"
+                    }}>
+
+
+                        <Autocomplete
+
+                            value={hospital}
+                            onChange={(_event, newValue) => setHospital(newValue)}
+                            options={hospitals}
+                            fullWidth
+                            renderInput={(params) => <TextField {...params} label="Hospital" />}
+                        />
+
                         <Autocomplete
                             sx={{
-                                marginTop:"10px",
-                                    color: 'var(--text-primary)',
-                                    input: {color: 'var(--text-primary)'},
-                                    label: {color: 'var(--text-secondary)'}
+                                color: 'var(--text-primary)',
+                                input: {color: 'var(--text-primary)'},
+                                label: {color: 'var(--text-secondary)'}
                             }}
                             value={specializations.find(p => p.specialization === specName) || null}
                             onChange={(_event, newValue) => {
@@ -985,20 +1015,7 @@ const Doctor = () => {
                             renderInput={(params) => <TextField {...params} label="Specializations" />}
                         />
 
-
-
                     </Box>
-                    <TextField
-
-                        label="Address"
-                        variant="filled"
-                        margin="normal"
-                        fullWidth
-                        required
-                        type="text"
-                        value={address}
-                        onChange={e => setAddress(e.target.value)}
-                    />
                     <Box sx={{
                         display: "flex",
                         width: "100%",
@@ -1006,14 +1023,7 @@ const Doctor = () => {
                         gap: "10px",
                         marginTop: "20px"
                     }}>
-                        <Autocomplete
 
-                            value={hospital}
-                            onChange={(_event, newValue) => setHospital(newValue)}
-                            options={hospitals}
-                            fullWidth
-                            renderInput={(params) => <TextField {...params} label="Hospital" />}
-                        />
 
                         <TextField
 
@@ -1083,7 +1093,7 @@ const Doctor = () => {
                     backgroundColor:"background.paper",
                     padding:"10px",
                     borderRadius:2,
-                    height:"620px",
+                    height:"660px",
                     display:"flex",
                     flexDirection:"column",
                 }}>
@@ -1140,7 +1150,7 @@ const Doctor = () => {
 
                         <Paper sx={{width: '100%', overflow: 'hidden'}}>
                             <TableContainer  sx={{
-                                maxHeight: 415,
+                                maxHeight: 460,
                                 height:"fit-content",
                                 overflowY: "auto", // allow vertical scrolling
                                 scrollbarWidth: "none", // Firefox

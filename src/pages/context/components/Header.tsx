@@ -25,8 +25,7 @@ import {styled} from "@mui/material/styles";
 import Dialog from "@mui/material/Dialog";
 import {Alert, Collapse} from "@mui/material";
 import AlertHook from '../../../alert/Alert.ts'
-import axiosInstance, {stopTokenRefreshInterval} from "../../../axios/axiosInstance.ts";
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import  {stopTokenRefreshInterval} from "../../../axios/axiosInstance.ts";
 
 
 
@@ -49,19 +48,6 @@ const pages = [
         link: "/context/appointments"
     },
 ];
-type MyData = {
-    licenceNo:string,
-    specialization:string,
-    image:string,
-    name:string,
-    city:string,
-    phoneNumber:string,
-    email:string,
-    experience:string,
-    hospital:string,
-    address:string,
-}
-
 
 
 function ResponsiveAppBar() {
@@ -120,28 +106,10 @@ function ResponsiveAppBar() {
         setOpenLogoutModal(false);
     }
 
-    // ----------------
 
-    const [openProfileModal,setOpenProfileModal] = React.useState<boolean>(false);
 
-    const handleOpenProfileModal = ():void=>{
-        fetchMe().then(()=>{
 
-            setOpenProfileModal(true);
-        })
-    }
-
-    const handleCloseProfileModal = ():void=>{
-        setOpenProfileModal(false);
-    }
     const settings = [
-    //     {
-    //     name: 'Profile',
-    //     onClick: () => {
-    //          handleOpenProfileModal();
-    //     },
-    //     id:1
-    // },
         {
             name:'Logout',
             onClick:() => {
@@ -162,15 +130,7 @@ function ResponsiveAppBar() {
         }, 1000)
 
     }
-    const [myProfileData, setMyProfileData] = React.useState<MyData>();
 
-    const fetchMe = async ()=>{
-        await axiosInstance.get("http://localhost:9091/api/doctors/auth-doctor-details", {headers:{Authorization : `Bearer ${localStorage.getItem("access_token")}`}}).then(res=>{
-            setMyProfileData(res.data.data);
-        }).catch(err=>{
-            console.log(err)
-        })
-    }
     return (
         <AppBar position="fixed" color="default" sx={{
             backgroundColor: "inherit", // semi-transparent background
@@ -253,106 +213,6 @@ function ResponsiveAppBar() {
             {/*logout modal*/}
 
 
-            {/*profile modal*/}
-            <BootstrapDialog
-                onClose={handleCloseProfileModal}
-                aria-labelledby="customized-dialog-title"
-                open={openProfileModal}
-
-            >
-                <DialogTitle sx={{ m: 0, p: 2, color:"primary.main" }} id="customized-dialog-title">
-                   Your Profile Details
-                </DialogTitle>
-                <IconButton
-                    aria-label="close"
-                    onClick={handleCloseProfileModal}
-                    sx={(theme) => ({
-                        position: 'absolute',
-                        right: 8,
-                        top: 8,
-                        color: theme.palette.grey[500],
-                    })}
-                >
-                    <CloseIcon />
-                </IconButton>
-                <DialogContent>
-                    <Box>
-                        <Box sx={{
-                            display:"flex",
-                            alignItems:"center",
-                            width:"100%",
-                            boxShadow:"rgba(0, 0, 0, 0.16) 0px 10px 36px 0px, rgba(0, 0, 0, 0.06) 0px 0px 0px 1px",
-                            borderRadius:"10px"
-
-                        }}>
-                            {
-                                myProfileData?.image? (
-                                    <img style={{width:"100px", height:"100px", borderRadius:"50%"}} src={myProfileData?.image} alt="profile"/>
-                                ):(
-
-                                    <IconButton sx={{
-                                        width:"160px",
-                                        height:"160px",
-                                        borderRadius:"50%"
-                                    }}>
-                                        <AccountCircleIcon sx={{
-                                            width:"160px",
-                                            height:"160px",
-                                            borderRadius:"50%"
-                                        }} />
-                                    </IconButton>
-
-                                )}
-                            <Typography  variant="h6">
-                                {myProfileData?.name}
-                            </Typography>
-                        </Box>
-                        <Box sx={{display:"flex", alignItems:"center", justifyContent:"space-around"}}>
-                            <Box sx={{display:"flex", gap:"10px", alignItems:"center", marginTop:"10px"}}>
-                                <i className="fa-solid fa-envelope"></i>
-                                <Typography>
-                                    {myProfileData?.email}
-                                </Typography>
-                            </Box>
-                            <Box sx={{display: "flex", gap: "10px", alignItems: "center", marginTop: "10px"}}>
-                                <i className="fa-solid fa-location-dot"></i>
-                                <Typography>
-                                    {myProfileData?.address}
-                                </Typography>
-                            </Box>
-                        </Box>
-                        <Box
-                            sx={{
-                                display: "grid",
-                                gridTemplateColumns: "1fr 1fr",
-                                gap: "18px",
-                                padding: "20px",
-                                marginTop: "12px",
-                                width: "100%",
-                                boxShadow:
-                                    "rgba(0, 0, 0, 0.16) 0px 10px 36px 0px, rgba(0, 0, 0, 0.06) 0px 0px 0px 1px",
-                                borderRadius: "16px",
-                            }}
-                        >
-                            <Box sx={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                <i className="fa-solid fa-house" style={{ color: "#4caf50", fontSize: 20 }}></i>
-                                <Box>
-                                    <Typography variant="caption" color="textSecondary">
-                                        City
-                                    </Typography>
-                                    <Typography variant="body1">{myProfileData?.city}</Typography>
-                                </Box>
-                            </Box>
-
-                        </Box>
-
-                    </Box>
-                </DialogContent>
-                <DialogActions  sx={{marginLeft:1.5}}>
-                    <Typography color="textDisabled" width="100%" >contact admin to update details</Typography>
-                </DialogActions>
-            </BootstrapDialog>
-            {/*profile modal*/}
             <Container maxWidth="xl">
                 <Toolbar disableGutters>
                     {/*logo goes here*/}

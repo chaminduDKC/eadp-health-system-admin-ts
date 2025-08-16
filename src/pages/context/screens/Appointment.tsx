@@ -10,7 +10,6 @@ import TableRow from '@mui/material/TableRow';
 import Box from "@mui/material/Box";
 import axiosInstance, {startTokenRefreshInterval} from "../../../axios/axiosInstance.ts";
 import {useEffect, useState} from "react";
-import { styled } from '@mui/material/styles';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -19,13 +18,9 @@ import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
-import {Autocomplete, Card, CardContent, CircularProgress, TextField} from "@mui/material";
-import EmailIcon from "@mui/icons-material/Email";
-import HomeIcon from "@mui/icons-material/Home";
-import CakeIcon from "@mui/icons-material/Cake";
-import WcIcon from "@mui/icons-material/Wc";
-import PhoneIcon from "@mui/icons-material/Phone"
-import AccountBoxIcon from '@mui/icons-material/AccountBox';
+import {Autocomplete,  CircularProgress, DialogContentText, TextField} from "@mui/material";
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
 import { motion } from "framer-motion";
 import AlertHook from '../../../alert/Alert.ts'
 import {Alert, Collapse} from "@mui/material";
@@ -33,77 +28,71 @@ import {DatePicker, LocalizationProvider} from "@mui/x-date-pickers";
 import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
 import MenuItem from "@mui/material/MenuItem";
 import type {Dayjs} from "dayjs";
+import SettingsIcon from "@mui/icons-material/Settings";
+import {FetchPatients} from "../../../service/patientService.ts";
 
-
-
-const rowVariants = {
+const itemVariant = {
     hidden: { opacity: 0, y: 20 },
-    visible: (i: number) => ({
-        opacity: 1,
-        y: 0,
-        transition: {
-            delay: i * 0.05,
-            duration: 0.4,
-            ease: "easeOut"
-        }
-    }),
+    visible: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -20 },
 };
-
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-    '& .MuiDialogContent-root': {
-        padding: theme.spacing(2),
-    },
-    '& .MuiDialogActions-root': {
-        padding: theme.spacing(1),
-    },
-}));
-
 interface Column {
-    id: 'patientName' | 'date' | 'time' | 'reason' | 'status';
+    id: 'patientName' | 'date' | 'time' | 'reason' | 'status' |'doctorName' | 'paymentStatus';
     label: string;
     minWidth?: number;
     align?: 'right' | 'center' | 'left';
     format?: (value: number) => string;
 }
 type Patient = {
-    patientId: string,
-    name: string,
+    id?:string,
+    patientId?: string,
+    name?: string,
     userId?: string,
-    email:string,
-    address:string,
-    age:number,
-    gender:string,
-    phone:string,
+    email?:string,
+    address?:string,
+    age?:number,
+    gender?:string,
+    phone?:string,
+}
+
+
+
+type Booking = {
+    bookingId?: string,
+    patientId?: string,
+    patientName?: string,
+    doctorId?: string,
+    doctorName?: string,
+    date?: string,
+    time?: string,
+    reason?: string,
+    status?: string,
+    paymentStatus?: string
 }
 
 const columns: readonly Column[] = [
+    {id: 'doctorName', label: 'Doctor', minWidth: 220 },
     { id: 'patientName', label: 'Patient', minWidth: 150 },
-    { id: 'date', label: 'Date', minWidth: 100, align:"center" },
+    { id: 'date', label: 'Date', minWidth: 110, align:"center" },
     {
         id: 'time',
         label: 'Time',
         minWidth: 60,
         align: 'center',
     },
-    {
-        id: 'reason',
-        label: 'Reason',
-        minWidth: 100,
-        align: 'center',
-    },
+
     {
         id: 'status',
         label: 'Status',
-        minWidth: 100,
+        minWidth: 150,
         align: 'right',
     },
+    {
+        id: 'paymentStatus', label: 'Payment Status', minWidth: 150, align: 'right'
+    }
 ];
 
 
-// type Patient = {
-//     id:string,
-//     name:string
-// }
 type Specialization = {
     specializationId:string,
     specialization:string
@@ -119,38 +108,27 @@ type TimeSlot = {
     name:string
 }
 
-type Hospital = {
-    hospitalName:string
-}
-
 
 export default function Appointment() {
 
     const [bookings, setBookings] = useState([]);
 
 
-    const userUrl = import.meta.env.VITE_USER_API;
     const bookingUrl = import.meta.env.VITE_BOOKING_API;
-    const patientUrl = import.meta.env.VITE_PATIENT_API;
     const doctorUrl = import.meta.env.VITE_DOCTOR_API;
     const specializationUrl = import.meta.env.VITE_SPECIALIZATION_API;
     const availabilityUrl = import.meta.env.VITE_AVAILABILITY_API;
-    const hospitalUrl = import.meta.env.VITE_HOSPITAL_API;
 
     const {openAlert, showAlert, closeAlert, alertStatus } = AlertHook();
-
-    const [patient, setPatient] = useState<Patient | null>();
-    const [patId, setPatId] = useState<string>("")
+    const [patId, setPatId] = useState<string | undefined>("")
     const [patName, setPatName] = useState<string>()
     const [patients, setPatients] = useState<Patient[]>([]);
 
     const [specName, setSpecName] = useState<string>("")
     const [specializations, setSpecializations] = useState<Specialization[]>([]);
-    const [specialization, setSpecialization] = useState<string>();
     const [doctor, setDoctor] = useState<string>("");
     const [docName, setDocName] = useState<string>("")
     const [docId, setDocId] = useState<string>("")
-    const [specId, setSpecId] = useState<string>("")
     const [doctors, setDoctors] = useState<Doctor[]>([]);
     const [searchText, setSearchText] = useState<string>("");
 
@@ -175,7 +153,7 @@ export default function Appointment() {
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
-    const handleChangePage = (_event, newPage: number) => {
+    const handleChangePage = (_event: React.MouseEvent<HTMLButtonElement> | null, newPage: number) => {
         setPage(newPage);
         fetchBookings(newPage, rowsPerPage, searchText);
     };
@@ -189,55 +167,54 @@ export default function Appointment() {
 
 
 
-    const [patientDetails, setPatientDetails] = React.useState<Patient | null>(null)
-
-
-    const [openPatientDetailModal, setOpenPatientDetailModal] = React.useState(false);
-
-    const handleOpenPatientDetails = (data:Patient) => {
-
-        if(!data){
-            console.error("Patient details are not available.");
-            return;
-        }
-
-        setPatientDetails(data);
-        setOpenPatientDetailModal(true);
-    };
-    const handleClosePatientDetailModal = () => {
-        setOpenPatientDetailModal(false);
-        setPatientDetails(null);
-    };
-
+    // const fetchPatients = async () => {
+    //     try {
+    //         const response = await axiosInstance.get(`${patientUrl}/find-all-patients`,
+    //             {params: {searchText:"", page: 0, size: 1000}}
+    //         );
+    //         if(response.data.data.patientList.length === 0){
+    //             showAlert("No patients available now. Please try again")
+    //             setTimeout(()=>{
+    //                 closeAlert()
+    //             }, 2000)
+    //         } else{
+    //             const patientNames:Patient[] = response.data.data.patientList.map((p: { patientId: string; name: string; }) => ({
+    //                 id: p.patientId,
+    //                 name: p.name,
+    //             }));
+    //             setPatients(patientNames);
+    //         }
+    //
+    //     } catch (error:unknown) {
+    //         showAlert("Failed to load patients. "+error.message);
+    //         setTimeout(()=>{
+    //             closeAlert()
+    //         }, 2000)
+    //
+    //         console.log(error)
+    //
+    //     }
+    // };
 
     const fetchPatients = async () => {
         try {
-            const response = await axiosInstance.get(`${patientUrl}/find-all-patients`,
-                {params: {searchText:"", page: 0, size: 1000}}
-            );
-            if(response.data.data.patientList.length === 0){
+            const response:Patient[] = await FetchPatients({searchText, page, size: rowsPerPage});
+            if(response.length === 0){
                 showAlert("No patients available now. Please try again")
-                setTimeout(()=>{
-                    closeAlert()
-                }, 2000)
             } else{
-                const patientNames:Patient[] = response.data.data.patientList.map((p: { patientId: string; name: string; }) => ({
+                console.log("HiHi")
+                const patientNames = response.map((p: Patient) => ({
                     id: p.patientId,
                     name: p.name,
                 }));
                 setPatients(patientNames);
             }
-
-        } catch (error:unknown) {
-            showAlert("Failed to load patients. "+error.message);
-            setTimeout(()=>{
-                closeAlert()
-            }, 2000)
-
-            console.log(error)
-
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+            showAlert(`Failed to load patients. ${errorMessage}`)
+            console.error('Error fetching patients:', error)
         }
-    };
+    }
 
     const fetchSpecializations = async ()=>{
         try {
@@ -251,9 +228,10 @@ export default function Appointment() {
                 setSpecializations(response.data.data);
             }
 
-        } catch (error) {
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
             console.error("Error fetching specializations:", error);
-            showAlert("Failed to load specializations. "+error.message)
+            showAlert("Failed to load specializations. "+errorMessage)
             setTimeout(()=>{
                 closeAlert()
             }, 2000)
@@ -275,7 +253,8 @@ export default function Appointment() {
             }
 
         } catch (error) {
-            showAlert("Failed load doctors. "+error.message)
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+            showAlert("Failed load doctors. "+errorMessage)
             setTimeout(()=>{
                 closeAlert()
             }, 2000)
@@ -326,7 +305,8 @@ export default function Appointment() {
                 return[];
             } else {
                 const slots:TimeSlot = response.data.data.map((slot:TimeSlot, idx:number) => ({id:idx, name: slot}));
-                // @ts-ignore
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-expect-error
                 setAvailableSlots(slots);
                 return slots;
             }
@@ -350,7 +330,8 @@ export default function Appointment() {
         setSpecName("")
     }
 
-    const handleCreateAppointment = async ()=>{
+    const handleCreateAppointment = async (e:React.MouseEvent<HTMLButtonElement>)=>{
+        e.preventDefault()
         if(!patName || !docName || !specName || !selectedDate || !time || !reason){
             showAlert("Please fill all fields")
             setTimeout(()=>{
@@ -407,15 +388,71 @@ export default function Appointment() {
         }
     }
 
-    const fetchPatientDetails = async (id:string)=>{
+
+
+
+    const [modalData, setModalData] = useState<Booking>({});
+
+    const [statusModalOpen, setStatusModalOpen] = useState(false);
+
+    const handleCloseStatusModal = ()=>{
+        setStatusModalOpen(false);
+        fetchBookings(page, rowsPerPage, searchText)
+    }
+    const handleUpdateStatus = async (status:string)=>{
         try {
-            const response = await axiosInstance.get(`${patientUrl}/find-patient/${id}`)
-            return response.data.data;
-        } catch (error) {
-            console.error("Error fetching patient details:", error);
-            return null;
+            await axiosInstance.put(
+                `http://localhost:9093/api/bookings/update-booking-status/${modalData.bookingId}`,
+                { },
+                { params:{
+                        status: status
+                    },headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("access_token")}` } }
+            ).then((res)=>{
+                console.log(res)
+                fetchBookings(page, rowsPerPage, searchText);
+                handleCloseStatusModal();
+            });
+
+        } catch (e) {
+            console.log(e)
         }
-    };
+
+    }
+    const handleUpdatePaymentStatus = async ()=>{
+        await axiosInstance.put(
+            `http://localhost:9093/api/bookings/update-payment-status/${modalData.bookingId}`,
+            {  },
+            { params:{ paymentStatus: "COMPLETED"},headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("access_token")}` } }
+        ).then(()=>{
+            fetchBookings(page, rowsPerPage, searchText).then(()=>{
+                handleCloseStatusModal();
+            });
+
+        });
+
+    }
+
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+
+    const handleCloseDeleteModal = ()=>{
+        setDeleteModalOpen(false);
+    }
+
+    const deleteBooking = async (booking:Booking)=>{
+
+        try {
+            await axiosInstance.delete(`http://localhost:9093/api/bookings/delete-by-booking-id/${booking.bookingId}`,
+                {headers: {"Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("access_token")}`}}
+            );
+            showAlert("success-delete")
+            await fetchBookings(page, rowsPerPage, searchText);
+            handleCloseDeleteModal();
+            handleCloseStatusModal();
+        } catch (error) {
+            showAlert("failed-delete")
+            console.error("Error deleting booking:", error);
+        }
+    }
 
     return (
         <Box sx={{width:"100%",mx:"auto", marginTop:"100px", marginBottom:{
@@ -435,6 +472,133 @@ export default function Appointment() {
                 display:{xl:"flex", lg:"flex", md:"column", sm:"column", xs:"column"},
                 gap:{xl:5, lg:4, md:10, sm:50, xs:10}
             }}>
+
+                <React.Fragment>
+                    <Dialog
+                        open={deleteModalOpen}
+                        onClose={handleCloseDeleteModal}
+                        aria-labelledby="alert-dialog-title"
+                        aria-describedby="alert-dialog-description"
+                    >
+                        <DialogTitle id="alert-dialog-title">
+                            {"Delete?"}
+                            <IconButton
+                                aria-label="close"
+                                onClick={handleCloseDeleteModal}
+                                sx={{
+                                    position: "absolute",
+                                    right: 8,
+                                    top: 8,
+                                    color: (theme) => theme.palette.grey[500],
+                                }}
+                            >
+                                <CloseIcon />
+                            </IconButton>
+                        </DialogTitle>
+                        <DialogContent>
+                            <DialogContentText id="alert-dialog-description">
+                                If you delete, all appointment related data will be lost
+                            </DialogContentText>
+                        </DialogContent>
+                        <DialogActions>
+                            <Button
+                                onClick={()=>{
+                                    handleCloseDeleteModal();
+                                }} autoFocus>Cancel</Button>
+                            <Button variant='contained'
+                                    onClick={()=>{
+                                        console.log("done")
+                                        deleteBooking(modalData).then(()=>{
+                                            fetchBookings(page, rowsPerPage, searchText).then(()=>{
+                                                handleCloseDeleteModal();
+                                            });
+                                        })
+
+
+                                    }} >
+                                Delete
+                            </Button>
+                        </DialogActions>
+                    </Dialog>
+                </React.Fragment>
+
+                <React.Fragment>
+                    <Dialog
+                        open={statusModalOpen}
+                        onClose={handleCloseStatusModal}
+                        aria-labelledby="alert-dialog-title"
+                        aria-describedby="alert-dialog-description"
+                    >
+                        <DialogTitle id="alert-dialog-title">
+                            {modalData.doctorName} with patient :{" "}
+                            {modalData.patientName}
+                            <IconButton
+                                aria-label="close"
+                                onClick={handleCloseStatusModal}
+                                sx={{
+                                    position: "absolute",
+                                    right: 8,
+                                    top: 8,
+                                    color: (theme) => theme.palette.grey[500],
+                                }}
+                            >
+                                <CloseIcon />
+                            </IconButton>
+                        </DialogTitle>
+
+                        <DialogContent>
+                            <DialogContentText id="alert-dialog-description">
+                                Update appointment status or payment below.
+                            </DialogContentText>
+                        </DialogContent>
+                        <DialogActions>
+
+                            <Button
+                                variant="contained"
+                                disabled={modalData.paymentStatus === "COMPLETED"}
+                                onClick={async () => {
+                                    // Update payment status to COMPLETED
+                                    handleUpdatePaymentStatus();
+                                }}
+                            >
+                                Confirm Payment
+                            </Button>
+                            <Button
+                                variant="contained"
+                                disabled={modalData.status === "CONFIRMED" || modalData.status === "CANCELLED"}
+                                onClick={async () => {
+                                    // Update status to CONFIRMED
+                                    handleUpdateStatus("CONFIRMED")
+                                }}
+                            >
+                                Confirm Appointment
+                            </Button>
+                            <Button
+                                variant="contained"
+                                color="warning"
+                                disabled={modalData.status === "CANCELLED"}
+                                onClick={async () => {
+                                    // Update status to CANCELLED
+                                    handleUpdateStatus("CANCELLED")
+                                }}
+                            >
+                                Cancel Appointment
+                            </Button>
+                            <Button
+                                variant="contained"
+                                color="error"
+                                onClick={async () => {
+                                    // Update status to CANCELLED
+                                   setDeleteModalOpen(true);
+                                }}
+                            >
+                                Delete Appointment
+                            </Button>
+                        </DialogActions>
+                    </Dialog>
+                </React.Fragment>
+
+
                 <Box sx={{
                     flex:1,
                     backgroundColor:"background.paper",
@@ -456,11 +620,10 @@ export default function Appointment() {
                         value={patients?.find(p => p.name === patName) || null}
                         onChange={(_event, newValue) => {
                             if (newValue) {
-                                setPatient(newValue);     // full object
-                                setPatId(newValue.id);    // patient ID
+                                // full object
+                                setPatId(newValue?.id);    // patient ID
                                 setPatName(newValue.name); // just the name string
                             } else {
-                                setPatient(null);
                                 setPatId("");
                                 setPatName("");
                             }
@@ -484,8 +647,6 @@ export default function Appointment() {
                         value={specializations?.find(p => p.specialization === specName) || null}
                         onChange={(_event, newValue) => {
                             if (newValue) {
-                                setSpecialization(newValue.specialization);     // full object
-                                setSpecId(newValue.specializationId);    // patient ID
                                 setSpecName(newValue.specialization); // just the name string
                                 fetchDoctorsBySpecialization(newValue.specialization);
                             } else {
@@ -549,7 +710,7 @@ export default function Appointment() {
                             shouldDisableDate={d => {
                                 if (!doctor || !availableDatesByDoctor || !Array.isArray(availableDatesByDoctor)) return true;
                                 const iso:string = d.format('YYYY-MM-DD');
-                                // @ts-ignore
+                                // @ts-expect-error - We know this type mismatch is expected
                                 return !availableDatesByDoctor.includes(iso);
                             }}
                             format="YYYY-MM-DD"
@@ -632,7 +793,7 @@ export default function Appointment() {
                 </Box>
 
                 <Box sx={{
-                    flex:1.6,
+                    flex:2.5,
                     backgroundColor:"background.paper",
                     padding:"10px",
                     borderRadius:2,
@@ -672,7 +833,7 @@ export default function Appointment() {
                             fullWidth
                             id="filled-search"
                             label="Search by name or specialization or email"
-                            type="search"
+                            type="text"
                             variant="filled"
                             onChange={(e) => {
                                 const value = e.target.value;
@@ -722,15 +883,34 @@ export default function Appointment() {
                                             custom={index}
                                             initial="hidden"
                                             animate="visible"
-                                            variants={rowVariants}
-                                            onClick={() => fetchPatientDetails(row.patientId)}
+                                            variants={itemVariant}
+                                            // onClick={() => fetchPatientDetails(row.patientId)}
                                             style={{ cursor: "pointer" }}
                                         >
                                             {columns.map((column, colIndex) => {
                                                 const value = row[column.id];
                                                 return (
-                                                    <TableCell key={colIndex} align={column.align}>
+                                                    <TableCell  key={colIndex} align={column.align}>
+                                                        <>
+                                                        {column.id === "doctorName" && (
+                                                            <IconButton>
+                                                                <SettingsIcon sx={{color:"primary.main"}}  onClick={() => {
+                                                                    setStatusModalOpen(true);
+                                                                    setModalData(row)
+                                                                }}/>
+                                                            </IconButton>
+                                                        )}
+                                                            {
+                                                                column.id === "paymentStatus" && value === "COMPLETED" ?
+                                                                    <IconButton disabled={true}><CheckCircleIcon sx={{color: "green"}}/>  </IconButton>: ""
+                                                            }
+
+                                                            {
+                                                                column.id === "status" && value === "CONFIRMED" ?
+                                                                    <IconButton disabled={true}><CheckCircleIcon sx={{color: "green"}}/>  </IconButton> : value === "CANCELLED" ?  <IconButton disabled={true}><CancelIcon sx={{color: "red"}}/>  </IconButton> : ""
+                                                            }
                                                         {value}
+                                                        </>
                                                     </TableCell>
                                                 );
                                             })}

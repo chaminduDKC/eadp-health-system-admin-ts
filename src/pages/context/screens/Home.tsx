@@ -14,7 +14,7 @@ import { motion } from "framer-motion";
 import { SparkLineChart } from "@mui/x-charts/SparkLineChart";
 import { LineChart } from "@mui/x-charts";
 import ReusableModal from "./ReusableModal/ReusableModal.tsx";
-import {useEffect, useState} from "react";
+import React, {type ChangeEvent, useEffect, useState} from "react";
 import axiosInstance, {startTokenRefreshInterval} from "../../../axios/axiosInstance.ts";
 import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
 import {DatePicker, LocalizationProvider} from "@mui/x-date-pickers";
@@ -28,8 +28,6 @@ const itemVariant = {
     visible: { opacity: 1, y: 0 },
     exit: { opacity: 0, y: -20 },
 };
-
-
 
 type Patient = {
     id:string,
@@ -71,8 +69,7 @@ const Home = () => {
 
     const theme = useTheme();
     const { openAlert, alertStatus, showAlert, closeAlert } = AlertHook();
-
-    const [patient, setPatient] = useState<Patient | null>();
+    
     const [patId, setPatId] = useState<string>("")
     const [patName, setPatName] = useState<string>()
     const [patients, setPatients] = useState<Patient[]>([]);
@@ -83,7 +80,6 @@ const Home = () => {
     const [doctor, setDoctor] = useState<string>("");
     const [docName, setDocName] = useState<string>("")
     const [docId, setDocId] = useState<string>("")
-    const [specId, setSpecId] = useState<string>("")
     const [doctors, setDoctors] = useState<Doctor[]>([]);
 
     const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([])
@@ -144,7 +140,8 @@ const Home = () => {
             }
 
         } catch (error:unknown) {
-            showAlert("Failed to load patients. "+error.message);
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+            showAlert("Failed to load patients. "+errorMessage);
             setTimeout(()=>{
                 closeAlert()
             }, 2000)
@@ -169,7 +166,7 @@ const Home = () => {
 
         } catch (error) {
             console.error("Error fetching specializations:", error);
-            showAlert("Failed to load specializations. "+error.message)
+            showAlert("Failed to load specializations. "+error)
             setTimeout(()=>{
                 closeAlert()
             }, 2000)
@@ -191,7 +188,7 @@ const Home = () => {
             }
 
         } catch (error) {
-            showAlert("Failed load doctors. "+error.message)
+            showAlert("Failed load doctors. "+error)
             setTimeout(()=>{
                 closeAlert()
             }, 2000)
@@ -242,7 +239,8 @@ const Home = () => {
                 return[];
             } else {
                 const slots:TimeSlot = response.data.data.map((slot:TimeSlot, idx:number) => ({id:idx, name: slot}));
-                // @ts-ignore
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-expect-error
                 setAvailableSlots(slots);
                 return slots;
             }
@@ -494,7 +492,7 @@ const Home = () => {
         clearPatientDoctorData();
         // clearDoctorData();
     }
-    const handleCreateDoctor = async (e)=>{
+    const handleCreateDoctor = async (e:React.MouseEvent<HTMLButtonElement>)=>{
         setLoading(true)
         e.preventDefault();
         if(!fullName ||  !address || !phone || !specialization  || !hospital || !city || !experience || !licenceNo) {
@@ -629,7 +627,6 @@ const Home = () => {
         }
 
     }
-    // @ts-ignore
     return (
         <Box
             sx={{
@@ -672,11 +669,10 @@ const Home = () => {
                             value={patients?.find(p => p.name === patName) || null}
                             onChange={(_event, newValue) => {
                                 if (newValue) {
-                                    setPatient(newValue);     // full object
+                                     // full object
                                     setPatId(newValue.id);    // patient ID
                                     setPatName(newValue.name); // just the name string
                                 } else {
-                                    setPatient(null);
                                     setPatId("");
                                     setPatName("");
                                 }
@@ -701,7 +697,7 @@ const Home = () => {
                             onChange={(_event, newValue) => {
                                 if (newValue) {
                                     setSpecialization(newValue.specialization);     // full object
-                                    setSpecId(newValue.specializationId);    // patient ID
+                                    // patient ID
                                     setSpecName(newValue.specialization); // just the name string
                                     fetchDoctorsBySpecialization(newValue.specialization);
                                 } else {
@@ -765,7 +761,8 @@ const Home = () => {
                                 shouldDisableDate={d => {
                                     if (!doctor || !availableDatesByDoctor || !Array.isArray(availableDatesByDoctor)) return true;
                                     const iso:string = d.format('YYYY-MM-DD');
-                                    // @ts-ignore
+                                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                    // @ts-expect-error
                                     return !availableDatesByDoctor.includes(iso);
                                 }}
                                 format="YYYY-MM-DD"
@@ -960,7 +957,10 @@ const Home = () => {
                 },
                 {
                     label: loading ? "creating" :"create", disabled:loading,
-                    onClick: handleCreateDoctor,
+                    onClick: (e)=>{
+                        // @ts-expect-error
+                        handleCreateDoctor(e)
+                    },
                     color: "secondary",
                     variant: "contained"
                 }
@@ -1330,7 +1330,7 @@ const Home = () => {
                                     height={50}
                                     showTooltip={true}
                                     colors={[stat.iconColor]}
-                                    curve="monotone"
+                                    curve="monotoneX"
                                 />
                             </CardContent>
                         </Card>
@@ -1375,8 +1375,9 @@ const Home = () => {
                                             // },
                                         }}
                                         type="number"
-                                        onChange={(e:any)=>{
-                                            setNumberOfMonths(e.target.value)
+                                        onChange={(e:ChangeEvent<HTMLInputElement>)=>{
+                                            setNumberOfMonths(parseInt(e.target.value));
+                                            
                                         }}
                                     />
                                     <Button onClick={()=>{
