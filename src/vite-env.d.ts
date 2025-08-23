@@ -10,6 +10,7 @@ interface ImportMetaEnv {
     readonly VITE_SPECIALIZATION_API: string;
     readonly VITE_CLIENT_ID: string;
     readonly VITE_NEWS_API: string;
+    readonly VITE_HEALTH_PACKAGE_API:string;
 }
 
 interface ImportMeta {

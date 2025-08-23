@@ -1,6 +1,8 @@
 import axios from 'axios';
+const clientId = import.meta.env.VITE_CLIENT_ID;
+const tokenUri = import.meta.env.VITE_KC_API;
 
-// Storage handler
+// storage service
 const TokenService = {
     getAccessToken: () => localStorage.getItem('access_token'),
     getRefreshToken: () => localStorage.getItem('refresh_token'),
@@ -15,7 +17,7 @@ const TokenService = {
     }
 };
 
-// JWT utils
+// Jwt util
 const parseJwt = (token:string) => {
     try {
         return JSON.parse(atob(token.split('.')[1]));
@@ -38,11 +40,11 @@ const refreshToken = async () => {
 
     const params = new URLSearchParams();
     params.append('grant_type', 'refresh_token');
-    params.append('client_id', 'hope-health-client');
+    params.append('client_id', clientId);
     params.append('refresh_token', refresh);
 
     const response = await axios.post(
-        'http://localhost:8080/realms/hope-health-realm/protocol/openid-connect/token',
+        tokenUri,
         params,
         { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
@@ -84,7 +86,7 @@ let refreshIntervalId: number | null | undefined = null;
 export const startTokenRefreshInterval = () => {
     if (refreshIntervalId) clearInterval(refreshIntervalId);
 
-    const INTERVAL_MS =  60 * 1000; // 5 minutes
+    const INTERVAL_MS =   10 * 60 * 1000; // 10
     refreshIntervalId = setInterval(async () => {
         try {
             await refreshToken();

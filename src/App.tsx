@@ -12,8 +12,10 @@ import NotFound from "./pages/NotFound.tsx";
 
 
 
-const isValidToken = (token:any)=>{
+const isValidToken = (token:string | undefined | null)=>{
     if(token !== null){
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
         return token.trim() !== "" && token !== "undefined";
     }
 }
@@ -27,7 +29,7 @@ const App:React.FC = ()=> {
   }
 
   useEffect(() => {
-    setIsAuthenticated(isValidToken(localStorage.getItem("access_token")))
+    setIsAuthenticated(isValidToken(localStorage.getItem("access_token")) )
   }, [isAuthenticated]);
 
 

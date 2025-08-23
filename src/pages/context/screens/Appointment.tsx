@@ -112,8 +112,6 @@ type TimeSlot = {
 const Appointment:React.FC = ()=> {
 
     const [bookings, setBookings] = useState([]);
-
-
     const bookingUrl = import.meta.env.VITE_BOOKING_API;
     const doctorUrl = import.meta.env.VITE_DOCTOR_API;
     const specializationUrl = import.meta.env.VITE_SPECIALIZATION_API;
@@ -406,13 +404,14 @@ const Appointment:React.FC = ()=> {
     const handleUpdateStatus = async (status:string)=>{
         try {
             await axiosInstance.put(
-                `http://localhost:9093/api/bookings/update-booking-status/${modalData.bookingId}`,
+                `${bookingUrl}/update-booking-status/${modalData.bookingId}`,
                 { },
                 { params:{
                         status: status
                     },headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("access_token")}` } }
             ).then((res)=>{
                 console.log(res)
+                showAlert("Updated")
                 fetchBookings(page, rowsPerPage, searchText);
                 handleCloseStatusModal();
             });
@@ -424,14 +423,19 @@ const Appointment:React.FC = ()=> {
     }
     const handleUpdatePaymentStatus = async ()=>{
         await axiosInstance.put(
-            `http://localhost:9093/api/bookings/update-payment-status/${modalData.bookingId}`,
+            `${bookingUrl}/update-payment-status/${modalData.bookingId}`,
             {  },
             { params:{ paymentStatus: "COMPLETED"},headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("access_token")}` } }
         ).then(()=>{
+            showAlert("Updated")
             fetchBookings(page, rowsPerPage, searchText).then(()=>{
                 handleCloseStatusModal();
             });
 
+        }).catch(err=>{
+            console.log(err);
+            showAlert("Failed to update")
+            
         });
 
     }
@@ -445,15 +449,15 @@ const Appointment:React.FC = ()=> {
     const deleteBooking = async (booking:Booking)=>{
 
         try {
-            await axiosInstance.delete(`http://localhost:9093/api/bookings/delete-by-booking-id/${booking.bookingId}`,
+            await axiosInstance.delete(`${bookingUrl}/delete-by-booking-id/${booking.bookingId}`,
                 {headers: {"Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("access_token")}`}}
             );
-            showAlert("success-delete")
+            showAlert("Poointment deleted successfully")
             await fetchBookings(page, rowsPerPage, searchText);
             handleCloseDeleteModal();
             handleCloseStatusModal();
         } catch (error) {
-            showAlert("failed-delete")
+            showAlert("Failed to delete appointment")
             console.error("Error deleting booking:", error);
         }
     }

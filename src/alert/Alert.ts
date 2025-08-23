@@ -1,4 +1,4 @@
-// src/hooks/useAlert.js
+
 import { useState } from "react";
 
 export default function Alert() {
@@ -11,8 +11,9 @@ export default function Alert() {
     };
 
     const closeAlert = () => {
-        setAlertStatus("");
         setOpenAlert(false);
+        setAlertStatus("");
+
     };
 
     return {

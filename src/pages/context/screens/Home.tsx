@@ -1439,6 +1439,7 @@ const Home = () => {
                                 width:"50%",
                                 fontSize:{xl:18, lg:16, md:16, sm:16, xs:15},
                                 color:"white",
+                                lineHeight:1.2
                             }} variant="contained" onClick={()=>{
                                 setOpenAppointmentModal(true);
                             }}>Schedule appointment</Button>
