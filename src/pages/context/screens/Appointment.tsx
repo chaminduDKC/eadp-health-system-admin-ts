@@ -109,7 +109,7 @@ type TimeSlot = {
 }
 
 
-export default function Appointment() {
+const Appointment:React.FC = ()=> {
 
     const [bookings, setBookings] = useState([]);
 
@@ -331,9 +331,11 @@ export default function Appointment() {
     }
 
     const handleCreateAppointment = async (e:React.MouseEvent<HTMLButtonElement>)=>{
+        setLoading(true)
         e.preventDefault()
         if(!patName || !docName || !specName || !selectedDate || !time || !reason){
             showAlert("Please fill all fields")
+            setLoading(false)
             setTimeout(()=>{
                 closeAlert()
             },2000)
@@ -357,6 +359,8 @@ export default function Appointment() {
                     setLoading(false);
                     clearAppointmentData();
                     showAlert("Appointment created successfully")
+                    fetchBookings(page, rowsPerPage, searchText)
+                    setLoading(false)
                 });
 
             } catch (e) {
@@ -530,7 +534,6 @@ export default function Appointment() {
                         aria-describedby="alert-dialog-description"
                     >
                         <DialogTitle id="alert-dialog-title">
-                            {modalData.doctorName} with patient :{" "}
                             {modalData.patientName}
                             <IconButton
                                 aria-label="close"
@@ -551,9 +554,17 @@ export default function Appointment() {
                                 Update appointment status or payment below.
                             </DialogContentText>
                         </DialogContent>
-                        <DialogActions>
+                        <DialogActions sx={{
+                            display:'flex',
+                            flexDirection:"column",
+                            gap:2,
+                            paddingX:8,
+                            paddingBottom:2
+                        }}>
 
                             <Button
+                                fullWidth
+                                sx={{marginLeft:1}}
                                 variant="contained"
                                 disabled={modalData.paymentStatus === "COMPLETED"}
                                 onClick={async () => {
@@ -564,6 +575,7 @@ export default function Appointment() {
                                 Confirm Payment
                             </Button>
                             <Button
+                                fullWidth
                                 variant="contained"
                                 disabled={modalData.status === "CONFIRMED" || modalData.status === "CANCELLED"}
                                 onClick={async () => {
@@ -574,6 +586,7 @@ export default function Appointment() {
                                 Confirm Appointment
                             </Button>
                             <Button
+                                fullWidth
                                 variant="contained"
                                 color="warning"
                                 disabled={modalData.status === "CANCELLED"}
@@ -585,6 +598,7 @@ export default function Appointment() {
                                 Cancel Appointment
                             </Button>
                             <Button
+                                fullWidth
                                 variant="contained"
                                 color="error"
                                 onClick={async () => {
@@ -964,12 +978,11 @@ export default function Appointment() {
                         alignItems: "center"
                     }}
                 >
-                    {alertStatus === "failed-fetch-pat" && "Failed to load patient details. Please refresh the page and try again."}
-                    {alertStatus === "no-pat" && "Something went wrong. This patient is not available"}
-                    {alertStatus === "failed-fetch-apps" && "Failed to load your booked appointments. Please refresh the page and try again."}
-                </Alert>
+                    {alertStatus}
+                   </Alert>
             </Collapse>
             {/*alert*/}
         </Box>
     );
 }
+export default Appointment;

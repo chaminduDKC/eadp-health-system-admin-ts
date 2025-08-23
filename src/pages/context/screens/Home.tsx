@@ -29,6 +29,8 @@ const itemVariant = {
     exit: { opacity: 0, y: -20 },
 };
 
+
+
 type Patient = {
     id:string,
     name:string
@@ -595,6 +597,8 @@ const Home = () => {
     const [newsTitle, setNewsTitle] = useState<string>("")
     const [newsContent, setNewsContent] = useState<string>("")
     const [newsImageUrl, setNewsImageUrl] = useState<string>("")
+
+
     const handleCloseNewsModal = ()=>{
         setOpenCreateNewsModal(false);
     }
@@ -627,6 +631,72 @@ const Home = () => {
         }
 
     }
+
+
+    const [openCreatePackageModal, setOpenCreatePackageModal] = useState<boolean>(false);
+    const handleClosePackageModal = ()=>{
+        clearPackageData();
+        setOpenCreatePackageModal(false);
+    }
+    const [packageTitle, setPackageTitle] = useState<string>("")
+    const [packageCategory, setPackageCategory] = useState<string>("")
+    const [packagePrice, setPackagePrice] = useState<number>()
+
+    const [instruction, setInstruction] = useState<string>("")
+    const [instructions, setInstructions] = useState<string[]>([])
+
+    const [test, setTest] = useState<string>("")
+    const [tests, setTests] = useState<string[]>([])
+
+    const handleAddInstruction = ()=>{
+        if(instruction){
+            setInstructions([...instructions, instruction])
+            setInstruction("")
+        }
+    }
+
+    const handleRemoveInstruction = (index:number)=>{
+        setInstructions(instructions.filter((_, i) => i !== index));
+    }
+
+    const handleAddTest = ()=>{
+        if(test){
+            setTests([...tests, test])
+            setTest("")
+        }
+    }
+    const clearPackageData = ()=>{
+        setInstructions([])
+        setTests([])
+        setTest("")
+        setInstruction("")
+        setPackagePrice()
+        setPackageCategory("")
+        setPackageTitle("")
+    }
+    const handleRemoveTest = (zIndex:number)=>{
+        setTests(tests.filter((_test, index)=> index !== zIndex))
+    }
+    const handleCreatePackage = async ()=>{
+        console.log(instructions)
+        const createdPackage = {
+            packageTitle:packageTitle,
+            category:packageCategory,
+            packagePrice:packagePrice,
+            instructionsList:instructions,
+            testList:tests
+        }
+        await axiosInstance.post("http://localhost:9095/api/health-packages/create-health-package", createdPackage).then(res=>{
+            console.log(res)
+            clearPackageData();
+            showAlert("Package added successfully")
+
+        }).catch((res)=>{
+            showAlert("Failed to add package")
+            console.log(res)
+        })
+
+    }
     return (
         <Box
             sx={{
@@ -649,6 +719,136 @@ const Home = () => {
                 },
             }}
         >
+            {/*packages modal*/}
+
+            <ReusableModal
+                onClose={handleClosePackageModal}
+                open={openCreatePackageModal}
+                title={"Create a Package"}
+                actions={[ { label: "Close", onClick: handleClosePackageModal, color: "primary", variant: "outlined" },
+                { label: loading ? "creating" :"create", disabled:loading, onClick: handleCreatePackage, color: "secondary", variant:"contained" }]}
+                content={
+                <Box>
+                    <Box sx={{
+                        display:"flex",
+                        flexDirection:"column",
+                        gap:"10px"
+                    }}>
+                        <TextField
+                            label="Package Title"
+                            fullWidth
+                            placeholder="Starter, Essential, Premium..."
+                            value={packageTitle}
+                            onChange={(e) => setPackageTitle(e.target.value)}
+                        />
+
+                        <TextField
+                            label="Package Category"
+                            placeholder="Male, Female, Under 40 Male..."
+                            fullWidth
+                            value={packageCategory}
+                            onChange={(e) => setPackageCategory(e.target.value)}
+                        />
+                        <TextField
+                            label="Package Price"
+
+                            fullWidth
+                            type="number"
+                            value={packagePrice}
+                            onChange={(e) => setPackagePrice(e.target.value)}
+                        />
+                        <Box sx={{
+                            display:"flex",
+                            alignItems:"center",
+                            justifyContent:"space-between",
+                            gap:"10px",
+                            height:"55px"
+                        }}>
+                            <TextField
+                                sx={{flex:4, height:"100%"}}
+                                label="Package Instructions"
+                                fullWidth
+                                value={instruction}
+                                onChange={(e) => setInstruction(e.target.value)}
+                            />
+                            <Button
+                                sx={{flex:1, height:"100%"}}
+                                variant="outlined"
+                                color="secondary"
+                                onClick={handleAddInstruction}
+                            >
+                                Add
+                            </Button>
+                        </Box>
+                        <Box sx={{
+
+                        }}>
+                            {instructions.map((instruction, index) => (
+                                <Box sx={{
+
+                                    width:"80%",
+                                    padding:"0px 20px",
+                                    display:"flex",
+                                    alignItems:"center",
+                                    justifyContent:"space-between"
+                                }} key={index}>
+                                    <Typography fontSize={14} component="li">
+                                        {instruction}
+                                    </Typography>
+
+                                    <Button sx={{
+                                        fontSize:"12px"
+                                    }} onClick={() => handleRemoveInstruction(index)}>Remove</Button>
+                                </Box>
+                            ))}
+                        </Box>
+
+                        <Box sx={{
+                            display:"flex",
+                            alignItems:"center",
+                            justifyContent:"space-between",
+                            gap:"10px",
+                            height:"55px"
+                        }}>
+                            <TextField
+                                sx={{flex:4, height:"100%"}}
+                                label="Package test"
+                                fullWidth
+                                value={test}
+                                onChange={(e) => setTest(e.target.value)}
+                            />
+                            <Button
+                                sx={{flex:1, height:"100%"}}
+                                variant="outlined"
+                                color="secondary"
+                                onClick={handleAddTest}
+                            >
+                                Add
+                            </Button>
+                        </Box>
+                        <Box>
+                            {tests.map((test, index) => (
+                                <Box sx={{
+                                    width:"80%",
+                                    padding:"0px 20px",
+                                    display:"flex",
+                                    alignItems:"center",
+                                    justifyContent:"space-between"
+                                }} key={index}>
+                                    <Typography fontSize={14} component="li">
+                                        {test}
+                                    </Typography>
+                                    <Button  sx={{
+                                        fontSize:"12px"
+                                    }} onClick={() => handleRemoveTest(index)}>Remove</Button>
+                                </Box>
+                            ))}
+                        </Box>
+                    </Box>
+                </Box>
+            }
+            />
+
             {/*appointment modal*/}
 
             <ReusableModal onClose={handleCloseAppointmentModal} open={openAppointmentModal} title={"Schedule an Appointment"} actions={[ { label: "Close", onClick: handleCloseAppointmentModal, color: "primary", variant: "outlined" },
@@ -686,10 +886,7 @@ const Home = () => {
 
                         <Autocomplete
                             sx={{
-                                backgroundColor: 'var(--bg-secondary)',
-                                color: 'var(--text-primary)',
-                                input: { color: 'var(--text-primary)' },
-                                label: { color: 'var(--text-secondary)' },
+
                                 marginTop: "15px"
                             }}
                             disabled={!patName}
@@ -714,10 +911,6 @@ const Home = () => {
                         />
                         <Autocomplete
                             sx={{
-                                backgroundColor: 'var(--bg-secondary)',
-                                color: 'var(--text-primary)',
-                                input: { color: 'var(--text-primary)' },
-                                label: { color: 'var(--text-secondary)' },
                                 marginTop: "15px",
                                 marginBottom:"15px"
                             }}
@@ -776,9 +969,6 @@ const Home = () => {
                         <TextField
                             sx={{
                                 marginTop:"15px",
-                                color: 'var(--text-primary)',
-                                input: {color: 'var(--text-primary)'},
-                                label: {color: 'var(--text-secondary)'}
                             }}
                             id="outlined-select-experience"
                             select
@@ -798,9 +988,6 @@ const Home = () => {
                         <TextField
                             sx={{
                                 marginTop:"15px",
-                                color: 'var(--text-primary)',
-                                input: {color: 'var(--text-primary)'},
-                                label: {color: 'var(--text-secondary)'}
                             }}
                             id="outlined-select-experience"
                             variant="filled"
@@ -971,12 +1158,6 @@ const Home = () => {
                     gap:"8px"
                 }}>
                     <TextField
-                        sx={{
-                            backgroundColor: 'var(--bg-secondary)',
-                            color: 'var(--text-primary)',
-                            input: {color: 'var(--text-primary)'},
-                            label: {color: 'var(--text-secondary)'}
-                        }}
                         label="Full name"
                         variant="filled"
                         fullWidth
@@ -1088,12 +1269,7 @@ const Home = () => {
 
                     />
                     <TextField
-                        // sx={{
-                        //     backgroundColor: 'var(--bg-secondary)',
-                        //     color: 'var(--text-primary)',
-                        //     input: {color: 'var(--text-primary)'},
-                        //     label: {color: 'var(--text-secondary)'}
-                        // }}
+
                         label="Password"
                         variant="filled"
 
@@ -1231,7 +1407,7 @@ const Home = () => {
                         width:{xl:"65%", lg:"65%", md:"65%", sm:"100%"}
                     }}>
                         <Typography fontWeight="bold" sx={{
-                            fontSize:{xl:80, lg:70, md:65, sm:70, xs:50},
+                            fontSize:{xl:70, lg:60, md:50, sm:40, xs:30},
                             textAlign:"center",
                             lineHeight:1.2,
                             fontWeightL:"bold",
@@ -1244,7 +1420,7 @@ const Home = () => {
                             display:"flex",
                             flexDirection:{xl:"row", lg:"row", md:"row",sm:"column", xs:"column"},
                             alignItems:{sm:"center", xs:"center"},
-                            marginTop:{xl:12, lg:15, md:20, sm:10, xs:8},
+                            marginTop:{xl:12, lg:15, md:20, sm:4, xs:4},
                             gap:{xl:8, lg:8, md:4, sm:5, xs:2}
                         }}>
                             <Typography width="50%" textAlign="center" sx={{
@@ -1252,7 +1428,7 @@ const Home = () => {
                                 fontFamily:'"Roboto"',
                                 border:"1px solid",
                                 borderColor:"primary.main",
-                                padding:"0 10px",
+                                padding:"10px 20px",
                                 borderRadius:2
                             }}>
                                 "Comprehensive Healthcare Management Platform Offering Seamless Booking,
@@ -1452,6 +1628,10 @@ const Home = () => {
                             <Button onClick={()=>{
                                 setOpenCreateNewsModal(true)
                             }} fullWidth variant="outlined">Create a news</Button>
+
+                            <Button sx={{ mt: 2 }} onClick={()=>{
+                                setOpenCreatePackageModal(true)
+                            }} fullWidth variant="outlined">Create a new package</Button>
                         </CardContent>
                     </Card>
 

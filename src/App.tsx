@@ -1,5 +1,5 @@
 import Login from './pages/login/Login.tsx'
-import {useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import {Navigate, Route, Routes} from "react-router-dom";
 import Context from "./pages/context/Context.tsx";
 import Home from './pages/context/screens/Home.tsx'
@@ -7,6 +7,9 @@ import {AppThemeProvider} from "../theme/ThemeContext.tsx";
 import Appointment from "./pages/context/screens/Appointment.tsx";
 import Patients from "./pages/context/screens/Patients.tsx";
 import Doctor from "./pages/context/screens/Doctor.tsx";
+import Checkups from "./pages/context/screens/Checkups.tsx";
+import NotFound from "./pages/NotFound.tsx";
+
 
 
 const isValidToken = (token:any)=>{
@@ -15,12 +18,10 @@ const isValidToken = (token:any)=>{
     }
 }
 
-function App() {
+const App:React.FC = ()=> {
   const [isAuthenticated, setIsAuthenticated] = useState(isValidToken(localStorage.getItem("access_token")));
-  const [loggedEmail, setLoggedEmail] = useState<string>("");
 
   const handleLogin = (email:string)=>{
-    setLoggedEmail(email);
     localStorage.setItem("loggedUser", email)
     setIsAuthenticated(true);
   }
@@ -43,7 +44,9 @@ function App() {
             <Route path="/context/appointments" element={<Appointment />} />
             <Route path="/context/doctors" element={<Doctor />} />
             <Route path="/context/patients" element={<Patients />} />
+            <Route path="/context/health-checkups" element={<Checkups />} />
         </Route>
+        <Route path="*" element={<NotFound />} />
 
     </Routes>
 </AppThemeProvider>

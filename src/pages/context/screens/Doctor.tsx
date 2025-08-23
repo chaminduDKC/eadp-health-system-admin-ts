@@ -4,7 +4,7 @@ import dayjs, { Dayjs } from 'dayjs';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
-import {useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import {Autocomplete, Button, CircularProgress,  Tab, Tabs, TextField} from "@mui/material";
 import {TimePicker} from "@mui/x-date-pickers";
 import axiosInstance, {startTokenRefreshInterval} from "../../../axios/axiosInstance.ts";
@@ -352,10 +352,9 @@ const Doctor = () => {
                 startTime:timeStringStart,
                 endTime:timeStringEnd
             }
-            await axiosInstance.post(`${availabilityUrl}/save-availabilities`, requestBody).then(
-                response =>{
+            await axiosInstance.post(`${availabilityUrl}/save-availabilities`, requestBody).then(()=>{
                     showAlert("Date scheduled successfully")
-                    console.log(response)
+                    handleCloseDoctorDetailsModal()
                 }
             ).catch((err)=>{
                 showAlert("failed to schedule date")
@@ -932,6 +931,19 @@ const Doctor = () => {
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={e => setPassword(e.target.value)}
+                        InputProps={{
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        aria-label={showPassword ? "Hide password" : "Show password"}
+                                        onClick={() => setShowPassword((prev) => !prev)}
+                                        edge="end"
+                                    >
+                                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                                    </IconButton>
+                                </InputAdornment>
+                            ),
+                        }}
                     />
                     <TextField
 

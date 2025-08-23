@@ -19,10 +19,6 @@ const CookieManagerService = {
     remove:(key:string)=> localStorage.removeItem(key),
 };
 
-type Error = {
-    code:string,
-    message:string,
-}
 
 function Login({ onLogin}) {
 

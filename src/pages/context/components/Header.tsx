@@ -47,6 +47,11 @@ const pages = [
         title: "Appointments",
         link: "/context/appointments"
     },
+    {
+        title: "Checkups",
+        link: "/context/health-checkups"
+    },
+
 ];
 
 
@@ -331,15 +336,11 @@ function ResponsiveAppBar() {
                                 key={page.title}
                                 onClick={handleCloseNavMenu}
                                 sx={(theme) => ({
-
-
                                     transition:"all 0.2s ease-in-out",
-                                    borderRadius:2,
                                     border:"2px solid transparent",
                                     "&:hover": {
                                         borderBottomColor: theme.palette.primary.main,
                                         borderBottom:"2px solid ",
-                                        borderRadius:10,
                                     },
                                 })}
                             >

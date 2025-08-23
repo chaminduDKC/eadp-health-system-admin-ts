@@ -1,5 +1,5 @@
 import Box from "@mui/material/Box";
-import {useEffect, useState} from "react";
+import React, {useEffect, useState} from "react";
 import axiosInstance, {startTokenRefreshInterval} from "../../../axios/axiosInstance.ts";
 import {
     Alert,
@@ -183,7 +183,7 @@ const Patients = () => {
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
 
-    const handleChangePage = (event, newPage) => {
+    const handleChangePage = (_event:React.MouseEvent<HTMLButtonElement>, newPage:number) => {
         setPage(newPage);
         fetchPatients(newPage, rowsPerPage, searchText)
     };
@@ -199,8 +199,6 @@ const Patients = () => {
 
     const [patients, setPatients] = useState<Patient[]>([])
 
-    const [enableEditMode, setEnableEditMode] = useState(false)
-    const [updateUserId, setUpdateUserId] = useState("")
 
     const [patientCount, setPatientCount] = useState(0);
 
@@ -242,13 +240,12 @@ const Patients = () => {
 
     const handleClosePatientDetailsModal = () => {
         setOpenPatientDetailModal(false);
-        setModalData({})
         setLoading(false);
         setIsChanged(false);
     };
 
 
-    const handleUpdatePatient = async (patientId:string, patient:Patient) => {
+    const handleUpdatePatient = async (_patientId:string, patient:Patient) => {
         const updateRequest = {
             name:modalData.name,
             address:modalData.address,
@@ -539,7 +536,7 @@ const Patients = () => {
                                                        value={modalData.email}
                                                        onChange={e=>setModalData({...modalData, email:e.target.value})}
                                                    />
-                                                   <Button sx={{flex:1.5, height:"100%"}} variant="contained" onClick={handleChangeEmail}>change email</Button>
+                                                   <Button sx={{flex:1.5, height:"100%"}} variant="contained" onClick={handleChangeEmail} >change email</Button>
                                                </Box>
                                                <Box sx={{
                                                    height:"100%",
@@ -641,6 +638,19 @@ const Patients = () => {
                         type="password"
                         value={password}
                         onChange={(e => setPassword(e.target.value))}
+                        InputProps={{
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        aria-label={showPassword ? "Hide password" : "Show password"}
+                                        onClick={() => setShowPassword((prev) => !prev)}
+                                        edge="end"
+                                    >
+                                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                                    </IconButton>
+                                </InputAdornment>
+                            ),
+                        }}
                     />
                     <Box sx={{
                         display: "flex",
@@ -785,7 +795,7 @@ const Patients = () => {
                         <TableContainer sx={{
 
 
-                            maxHeight: "418thapx",
+                            maxHeight: "418px",
                             overflowY: "auto", // allow vertical scrolling
                             scrollbarWidth: "none", // Firefox
                             "&::-webkit-scrollbar": {
@@ -818,15 +828,7 @@ const Patients = () => {
 
                                 <TableBody>
                                     {rows.map((row, idx) => (
-                                        <MotionTableRow
-                                            hover
-                                            role="checkbox"
-                                            tabIndex={-1}
-                                            key={idx}
-                                            initial={{ opacity: 0, y: 20 }}        // start faded & shifted down
-                                            animate={{ opacity: 1, y: 0 }}         // fade in & move up
-                                            transition={{ delay: idx * 0.05 }}     // small stagger
-                                        >
+                                       <TableRow>
                                             {columns.map((column) => {
                                                 const value = row[column.id];
                                                 return (
@@ -846,7 +848,7 @@ const Patients = () => {
                                                 );
                                             })}
                                             <Box sx={{ marginTop: "6px" }} />
-                                        </MotionTableRow>
+                                       </TableRow>
                                     ))}
                                 </TableBody>
                             </Table>
