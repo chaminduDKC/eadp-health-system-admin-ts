@@ -64,6 +64,8 @@ const columns: readonly Column[] = [
 
 export default function Checkups() {
 
+    const healthPackageUrl = import.meta.env.VITE_HEALTH_PACKAGE_API;
+
     const {alertStatus, showAlert, closeAlert, openAlert} = AlertHook();
 
     const [page, setPage] = React.useState(0);
@@ -90,9 +92,14 @@ export default function Checkups() {
 
 
     const fetchPackages = async (page:number, size:number, searchText:string)=>{
-        await axiosInstance.get("http://localhost:9095/api/health-packages/get-all-health-packages", {params:{searchText:searchText, page:page, size:size}}).then(res=>{
+        await axiosInstance.get(`${healthPackageUrl}/get-all-health-packages`, {params:{searchText:searchText, page:page, size:size}}).then(res=>{
             setPackages(res.data.data.packageList)
-            setPackageCount(res.data.data.packageCount)
+            if(packageCount && packageCount>0){
+                setPackageCount(res.data.data.packageCount)
+            } else{
+                setPackageCount(0)
+            }
+
         }).catch(err=>{
             showAlert("Failed to load package data. try again")
             console.log(err)
@@ -106,7 +113,7 @@ export default function Checkups() {
         setOpenDetailModal(false);
     }
     const deletePackage = async (id:string)=>{
-        await axiosInstance.delete(`http://localhost:9095/api/health-packages/delete-package-by-id/${id}`).then(res=>{
+        await axiosInstance.delete(`${healthPackageUrl}/delete-package-by-id/${id}`).then(()=>{
 
             setOpenDetailModal(false)
             fetchPackages(page, rowsPerPage, "");
