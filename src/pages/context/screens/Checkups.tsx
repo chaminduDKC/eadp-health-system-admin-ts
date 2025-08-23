@@ -94,12 +94,7 @@ export default function Checkups() {
     const fetchPackages = async (page:number, size:number, searchText:string)=>{
         await axiosInstance.get(`${healthPackageUrl}/get-all-health-packages`, {params:{searchText:searchText, page:page, size:size}}).then(res=>{
             setPackages(res.data.data.packageList)
-            if(packageCount && packageCount>0){
-                setPackageCount(res.data.data.packageCount)
-            } else{
-                setPackageCount(0)
-            }
-
+            setPackageCount(res.data.data.packageCount)
         }).catch(err=>{
             showAlert("Failed to load package data. try again")
             console.log(err)

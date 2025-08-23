@@ -1,6 +1,6 @@
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import dayjs, { Dayjs } from 'dayjs';
+import  { Dayjs } from 'dayjs';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
@@ -36,6 +36,7 @@ type Hospital = {
     name:string
 }
 type Doctor = {
+    image?:string,
     name:string,
     email: string,
     phoneNumber: string,
@@ -47,11 +48,12 @@ type Doctor = {
     city: string,
     doctorId: string,
     userId: string,
-    code:string
+    code:string,
+    password:string
 }
 
 type Column = {
-    id: 'name' | 'phoneNumber' | 'email' | 'city' | 'hospital' | 'specName' | 'address';
+    id: 'name' | 'phoneNumber' | 'email' | 'city' | 'hospital' | 'specName' | 'address' |'specialization';
     label: string;
     minWidth?: number;
     align?: 'right' | 'center' | 'left';
@@ -94,7 +96,7 @@ CustomTabPanel.propTypes = {
     value: PropTypes.number.isRequired,
 };
 
-function a11yProps(index) {
+function a11yProps(index:number) {
     return {
         id: `simple-tab-${index}`,
         'aria-controls': `simple-tabpanel-${index}`,
@@ -113,7 +115,7 @@ const Doctor = () => {
 
     const [value, setValue] = useState(0);
 
-    const handleChange = (_event, newValue) => {
+    const handleChange = (_event:any, newValue:number) => {
         setValue(newValue);
     };
 
@@ -138,7 +140,6 @@ const Doctor = () => {
     const [licenceNo, setLicenceNo] = useState("");
     const [hospitals, setHospitals] = useState<Hospital[] | string>([]);
     const [doctors, setDoctors] = useState<Doctor[]>([]);
-    const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [doctorCount, setDoctorCount] = useState(0);
 
@@ -190,12 +191,12 @@ const Doctor = () => {
         }
     }
 
-    const handleChangePage = (_event, newPage:number) => {
+    const handleChangePage = (_event: any, newPage:number) => {
         setPage(newPage);
         fetchDoctors(newPage, rowsPerPage, searchText);
     };
 
-    const handleChangeRowsPerPage = (event) => {
+    const handleChangeRowsPerPage = (event: { target: { value: string; }; }) => {
         const newSize = parseInt(event.target.value, 10);
         setRowsPerPage(newSize);
         setPage(0);
@@ -227,7 +228,6 @@ const Doctor = () => {
     };
     // ---------------------------------------
 
-    const isValidPassword:boolean = /^(?=.*[@&$])[A-Za-z0-9@&$]{6,}$/.test(password);
 
     const rows = doctors.map((doc) => ({
         name: doc?.name,
@@ -244,7 +244,7 @@ const Doctor = () => {
         code:doc?.doctorId
     }));
 
-    const handleCreateDoctor = async (e)=>{
+    const handleCreateDoctor = async (e:React.MouseEvent)=>{
         setLoading(true)
         e.preventDefault();
         if(!fullName ||  !address || !phone || !specName  || !hospital || !city || !experience || !licenceNo) {
@@ -310,7 +310,7 @@ const Doctor = () => {
     };
 
     const [alreadySelectedDates, setAlreadySelectedDates] = useState([]);
-    const [modalData, setModalData] = useState({})
+    const [modalData, setModalData] = useState<Doctor | null>()
 
     const fetchAlreadySelectedDates = async (doctorId:string)=>{
         await axiosInstance.get(`${availabilityUrl}/find-selected-dates-by-doctor-id/${doctorId}`).then(res=>{
@@ -323,34 +323,18 @@ const Doctor = () => {
 
     }
 
-    const handleAvailableTimes = async (doctorId)=>{
-        const formattedDate = selectedDate.format("YYYY-MM-DD");
-        const startTimeHours = startTime.$H;
-        const startTimeMins = startTime.$m;
+    const handleAvailableTimes = async (doctorId:string)=>{
+        const formattedDate = selectedDate?.format("YYYY-MM-DD");
 
-
-        const formattedStartHours = startTimeHours < 10 ? '0' + startTimeHours : startTimeHours;
-        const formattedStartMinutes = startTimeMins < 10 ? '0' + startTimeMins : startTimeMins;
-
-        const timeStringStart = `${formattedStartHours}:${formattedStartMinutes}`;
-
-
-        const endTimeHours = endTime.$H;
-        const endTimeMins = endTime.$m;
-
-
-        const formattedEndHours = endTimeHours < 10 ? '0' + endTimeHours : endTimeHours;
-        const formattedEndMinutes = endTimeMins < 10 ? '0' + endTimeMins : endTimeMins;
-
-        const timeStringEnd = `${formattedEndHours}:${formattedEndMinutes}`;
-
+        const formattedStartTime = startTime?.format("HH:mm")
+        const formattedEndTime = endTime?.format("HH:mm")
 
         try {
             const requestBody = {
                 doctorId:doctorId,
                 date:formattedDate,
-                startTime:timeStringStart,
-                endTime:timeStringEnd
+                startTime:formattedStartTime,
+                endTime:formattedEndTime
             }
             await axiosInstance.post(`${availabilityUrl}/save-availabilities`, requestBody).then(()=>{
                     showAlert("Date scheduled successfully")
@@ -371,7 +355,7 @@ const Doctor = () => {
 
     const [editField, setEditField] = useState("");
 
-    const handleUpdateDoctor = async (doctorId:string, modalData)=>{
+    const handleUpdateDoctor = async (doctorId:string, modalData:Doctor)=>{
         const doctorRequest = {
             name:modalData.name,
             phone:modalData.phoneNumber,
@@ -397,8 +381,8 @@ const Doctor = () => {
     }
 
     const handleChangePassword = async ()=>{
-        await axiosInstance.put(`${userUrl}/update-password/${modalData.userId}`, {}, {params:{
-                password:modalData.password,
+        await axiosInstance.put(`${userUrl}/update-password/${modalData?.userId}`, {}, {params:{
+                password:modalData?.password,
                 role:"doctor"
             }} ).then(()=>{
             showAlert("Password changed successfully")
@@ -410,8 +394,8 @@ const Doctor = () => {
     }
 
     const handleChangeEmail = async ()=>{
-        await axiosInstance.put(`${userUrl}/update-email/${modalData.userId}`, {}, {params:{
-                email:modalData.email,
+        await axiosInstance.put(`${userUrl}/update-email/${modalData?.userId}`, {}, {params:{
+                email:modalData?.email,
                 role:"doctor"
             }} ).then(()=>{
             fetchDoctors(page, rowsPerPage, searchText)
@@ -429,7 +413,7 @@ const Doctor = () => {
     const handleCloseDeleteModal = ()=>{
         setOpenDeleteModal(false)
     }
-    const handleDeleteDoctor = async (doctorId, userId)=>{
+    const handleDeleteDoctor = async (doctorId:string, userId:string)=>{
         try{
             await axiosInstance.delete(
                 `${doctorUrl}/delete-doctor/${doctorId}`,
@@ -486,7 +470,7 @@ const Doctor = () => {
                     actions={[
                         {label:"Cancel", onClick:handleCloseDeleteModal},
                         {label:"Delete", onClick:()=>{
-                                handleDeleteDoctor(modalData.doctorId, modalData.userId)
+                                handleDeleteDoctor(modalData?.doctorId, modalData?.userId)
                             }}
                     ]}
                 />
@@ -573,7 +557,7 @@ const Doctor = () => {
                                                 marginBottom:"10px",
                                                 marginRight:"10px"
                                             }} autoFocus onClick={()=>{
-                                            handleAvailableTimes(modalData.doctorId).then(()=>{
+                                            handleAvailableTimes(modalData?.doctorId).then(()=>{
                                                 // handleCloseModal();
                                             })
                                         }}>
@@ -597,7 +581,7 @@ const Doctor = () => {
 
                                     }}>
                                         {
-                                            modalData.image? (
+                                            modalData?.image? (
                                                 <img style={{width:"100px", height:"100px", borderRadius:"50%"}} src={modalData.image} alt="profile"/>
                                             ):(
 
@@ -609,7 +593,7 @@ const Doctor = () => {
 
                                             )}
                                         <Typography variant="h6">
-                                            {modalData.name}
+                                            {modalData?.name}
                                         </Typography>
                                     </Box>
                                     <Box sx={{display:"flex", marginTop:"10px", flexDirection:"column", gap:2}}>
@@ -619,7 +603,7 @@ const Doctor = () => {
                                                 fullWidth
                                                 label="Name"
                                                 variant="outlined"
-                                                value={modalData.name}
+                                                value={modalData?.name}
                                                 onChange={e=>{
                                                     setModalData({...modalData, name:e.target.value})
                                                     setIsChanged(true)
@@ -641,7 +625,7 @@ const Doctor = () => {
                                                 fullWidth
                                                 label="Address"
                                                 variant="outlined"
-                                                value={modalData.address}
+                                                value={modalData?.address}
                                                 onChange={e=>{
                                                     setModalData({...modalData, address:e.target.value})
                                                     setIsChanged(true)
@@ -663,7 +647,7 @@ const Doctor = () => {
                                                 fullWidth
                                                 label="City"
                                                 variant="outlined"
-                                                value={modalData.city}
+                                                value={modalData?.city}
                                                 onChange={e=>{
                                                     setModalData({...modalData, city:e.target.value})
                                                     setIsChanged(true)
@@ -685,7 +669,7 @@ const Doctor = () => {
                                                 fullWidth
                                                 label="Phone"
                                                 variant="outlined"
-                                                value={modalData.phoneNumber}
+                                                value={modalData?.phoneNumber}
                                                 onChange={e=>{
                                                     setModalData({...modalData, phoneNumber:e.target.value})
                                                     setIsChanged(true)
@@ -707,7 +691,7 @@ const Doctor = () => {
                                                 fullWidth
                                                 label="Experience"
                                                 variant="outlined"
-                                                value={modalData.experience}
+                                                value={modalData?.experience}
                                                 onChange={e=>{
                                                     setModalData({...modalData, experience:e.target.value})
                                                     setIsChanged(true)
@@ -734,7 +718,7 @@ const Doctor = () => {
                                                     label: {color: 'var(--text-secondary)'},
 
                                                 }}
-                                                value={modalData.hospital}
+                                                value={modalData?.hospital}
                                                 onChange={(_event, newValue) => {
                                                     if (newValue) {
                                                         modalData.hospital = newValue; // just the name string
@@ -801,7 +785,7 @@ const Doctor = () => {
                                                 fullWidth
                                                 label="Licence No"
                                                 variant="outlined"
-                                                value={modalData.licenceNo}
+                                                value={modalData?.licenceNo}
                                                 onChange={e=>{
                                                     setModalData({...modalData, licenceNo:e.target.value})
                                                     setIsChanged(true)
@@ -838,7 +822,7 @@ const Doctor = () => {
                                             sx={{flex:3}}
                                             label="Email"
                                             variant="outlined"
-                                            value={modalData.email}
+                                            value={modalData?.email}
                                             onChange={e=>setModalData({...modalData, email:e.target.value})}
                                         />
                                         <Button sx={{flex:1.5, height:"100%"}} variant="contained" onClick={handleChangeEmail}>change email</Button>
@@ -855,7 +839,7 @@ const Doctor = () => {
                                         label="Password"
                                         variant="outlined"
                                         type={showPassword ? "text" : "password"}
-                                        value={modalData.password}
+                                        value={modalData?.password}
                                         onChange={e=>setModalData({...modalData, password:e.target.value})}
                                         InputProps={{
                                             endAdornment: (

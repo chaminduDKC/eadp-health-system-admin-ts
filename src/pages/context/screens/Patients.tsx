@@ -19,7 +19,7 @@ import {
     Tabs,
     TextField
 } from "@mui/material";
-import { motion } from "framer-motion";
+
 import AlertHook from "../../../alert/Alert.ts";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
@@ -81,7 +81,7 @@ CustomTabPanel.propTypes = {
     value: PropTypes.number.isRequired,
 };
 
-function a11yProps(index) {
+function a11yProps(index:number) {
     return {
         id: `simple-tab-${index}`,
         'aria-controls': `simple-tabpanel-${index}`,
@@ -89,8 +89,6 @@ function a11yProps(index) {
 }
 
 const Patients = () => {
-
-    const MotionTableRow = motion(TableRow);
 
     const [value, setValue] = useState(0);
 
@@ -233,7 +231,7 @@ const Patients = () => {
 
     }));
 
-    const [modalData, setModalData] = useState<Patient>({});
+    const [modalData, setModalData] = useState<Patient >({});
     const [isChanged, setIsChanged] = useState(false);
 
     const [openPatientDetailModal, setOpenPatientDetailModal] = useState(false);
