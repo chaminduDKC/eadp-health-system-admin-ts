@@ -1,5 +1,5 @@
 import Box from "@mui/material/Box";
-import React, {useEffect, useState} from "react";
+import React, {type ReactNode, type SyntheticEvent, useEffect, useState} from "react";
 import axiosInstance, {startTokenRefreshInterval} from "../../../axios/axiosInstance.ts";
 import {
     Alert,
@@ -40,9 +40,10 @@ const columns:Column[] = [
 
 
 ];
+
 type Column = {
-    id:string,
-    align?:"left " | "right" | "center",
+    id:"name" | "age"| "phone",
+    align?:"center" | "left" | "right" | "inherit" | "justify" | undefined
     label:string,
     minWidth:number
 }
@@ -59,7 +60,7 @@ type Patient = {
     image?:string
 }
 
-function CustomTabPanel(props) {
+function CustomTabPanel(props: { children: ReactNode, value:number, index:number }) {
     const { children, value, index, ...other } = props;
 
     return (
@@ -92,7 +93,7 @@ const Patients = () => {
 
     const [value, setValue] = useState(0);
 
-    const handleChange = (_event, newValue) => {
+    const handleChange = (_event:SyntheticEvent, newValue:number) => {
         setValue(newValue);
     };
     const userUrl = import.meta.env.VITE_USER_API;
@@ -131,7 +132,8 @@ const Patients = () => {
         setPassword("");
     }
 
-    const handleCreatePatient = async () => {
+    const handleCreatePatient = async (e:React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
         setLoading(true);
         if (!fullName || !email || !address || !phone || !gender || !age || !password) {
             console.log("hi")
@@ -181,12 +183,12 @@ const Patients = () => {
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
 
-    const handleChangePage = (_event:React.MouseEvent<HTMLButtonElement>, newPage:number) => {
+    const handleChangePage = (_event:React.MouseEvent<HTMLButtonElement> | null, newPage:number) => {
         setPage(newPage);
         fetchPatients(newPage, rowsPerPage, searchText)
     };
 
-    const handleChangeRowsPerPage = (event) => {
+    const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const newSize = parseInt(event.target.value, 10);
         setRowsPerPage(newSize);
         setPage(0);
@@ -228,10 +230,11 @@ const Patients = () => {
         gender:pat.gender,
         patientId:pat.patientId,
         userId:pat.userId,
-
+        password:pat.password,
+        image:pat.image
     }));
 
-    const [modalData, setModalData] = useState<Patient >({});
+    const [modalData, setModalData] = useState<Patient>();
     const [isChanged, setIsChanged] = useState(false);
 
     const [openPatientDetailModal, setOpenPatientDetailModal] = useState(false);
@@ -244,30 +247,34 @@ const Patients = () => {
 
 
     const handleUpdatePatient = async (_patientId:string, patient:Patient) => {
-        const updateRequest = {
-            name:modalData.name,
-            address:modalData.address,
-            phone:modalData.phone,
-            gender:modalData.gender,
-            age:modalData.age
-        };
-        try{
-            await axiosInstance.put(`${userUrl}/update-user/${patient.userId}`,
-                updateRequest);
-            fetchPatients();
-            setLoading(false)
-            showAlert("Patient updated successfully")
-            handleClosePatientDetailsModal();
-        } catch (e) {
-            showAlert("failed to update the patient")
-            console.log(e)
-            setLoading(false);
+        if(modalData) {
+
+
+            const updateRequest = {
+                name: patient.name,
+                address: modalData.address,
+                phone: modalData.phone,
+                gender: modalData.gender,
+                age: modalData.age
+            };
+            try {
+                await axiosInstance.put(`${userUrl}/update-user/${patient.userId}`,
+                    updateRequest);
+                fetchPatients();
+                setLoading(false)
+                showAlert("Patient updated successfully")
+                handleClosePatientDetailsModal();
+            } catch (e) {
+                showAlert("failed to update the patient")
+                console.log(e)
+                setLoading(false);
+            }
         }
     }
 
     const handleChangePassword = async ()=>{
-        await axiosInstance.put(`${userUrl}/update-password/${modalData.userId}`, {}, {params:{
-                password:modalData.password,
+        await axiosInstance.put(`${userUrl}/update-password/${modalData?.userId}`, {}, {params:{
+                password:modalData?.password,
                 role:"patient"
             }} ).then(()=>{
             showAlert("Password changed successfully")
@@ -279,8 +286,8 @@ const Patients = () => {
     }
 
     const handleChangeEmail = async ()=>{
-        await axiosInstance.put(`${userUrl}/update-email/${modalData.userId}`, {}, {params:{
-                email:modalData.email,
+        await axiosInstance.put(`${userUrl}/update-email/${modalData?.userId}`, {}, {params:{
+                email:modalData?.email,
                 role:"patient"
             }} ).then(()=>{
             fetchPatients(page, rowsPerPage, searchText)
@@ -364,10 +371,13 @@ const Patients = () => {
                 gap:{xl:5, lg:4, md:10, sm:50, xs:10},
                 height:"100%"
             }}>
-                <ReusableModal open={openDeleteModal} onClose={handleCloseDeleteModal} title="Delete Patient"
+                <ReusableModal open={openDeleteModal} onClose={handleCloseDeleteModal} maxWidth="xs" title="Delete Patient"
                                actions={[
                                    {label:"Delete", variant:"contained", onClick:()=>{
-                                           handleDeletePatient(modalData.patientId, modalData.userId)
+                                       if(modalData){
+                                           handleDeletePatient(modalData?.patientId, modalData?.userId)
+                                       }
+
                                        }, },
                                    {label:"close", onClick:handleCloseDeleteModal, variant:"text",}
                 ]}
@@ -404,7 +414,7 @@ const Patients = () => {
 
                                                }}>
                                                    {
-                                                       modalData.image? (
+                                                       modalData?.image? (
                                                            <img style={{width:"100px", height:"100px", borderRadius:"50%"}} src={modalData.image} alt="profile"/>
                                                        ):(
 
@@ -416,7 +426,7 @@ const Patients = () => {
 
                                                        )}
                                                    <Typography variant="h6">
-                                                       {modalData.name}
+                                                       {modalData?.name}
                                                    </Typography>
                                                </Box>
                                                <Box sx={{display:"flex", marginTop:"10px", flexDirection:"column", gap:2}}>
@@ -426,10 +436,13 @@ const Patients = () => {
                                                            fullWidth
                                                            label="Name"
                                                            variant="outlined"
-                                                           value={modalData.name}
+                                                           value={modalData?.name}
                                                            onChange={e=>{
-                                                               setModalData({...modalData, name:e.target.value})
-                                                               setIsChanged(true)
+                                                               if(e.target.value && modalData) {
+                                                                   setModalData({...modalData, name:e.target.value})
+                                                                   setIsChanged(true)
+                                                               }
+
                                                            }}
                                                            InputProps={{
                                                                endAdornment: (
@@ -448,10 +461,13 @@ const Patients = () => {
                                                            fullWidth
                                                            label="Address"
                                                            variant="outlined"
-                                                           value={modalData.address}
+                                                           value={modalData?.address}
                                                            onChange={e=>{
-                                                               setModalData({...modalData, address:e.target.value})
-                                                               setIsChanged(true)
+                                                               if(modalData) {
+                                                                   setModalData({...modalData, address:e.target.value})
+                                                                   setIsChanged(true)
+                                                               }
+
                                                            }}
                                                            InputProps={{
                                                                endAdornment: (
@@ -470,10 +486,13 @@ const Patients = () => {
                                                            fullWidth
                                                            label="Phone"
                                                            variant="outlined"
-                                                           value={modalData.phone}
+                                                           value={modalData?.phone}
                                                            onChange={e=>{
-                                                               setModalData({...modalData, phone:e.target.value})
-                                                               setIsChanged(true)
+                                                               if(modalData) {
+                                                                   setModalData({...modalData, phone:e.target.value})
+                                                                   setIsChanged(true)
+                                                               }
+
                                                            }}
                                                            InputProps={{
                                                                endAdornment: (
@@ -493,10 +512,13 @@ const Patients = () => {
                                                            label="Age"
                                                            type="number"
                                                            variant="outlined"
-                                                           value={modalData.age}
+                                                           value={modalData?.age}
                                                            onChange={e=>{
-                                                               setModalData({...modalData, age:e.target.value})
-                                                               setIsChanged(true)
+                                                               if(modalData){
+                                                                   setModalData({...modalData, age:e.target.value})
+                                                                   setIsChanged(true)
+                                                               }
+
                                                            }}
                                                            InputProps={{
                                                                endAdornment: (
@@ -512,7 +534,10 @@ const Patients = () => {
                                                    </Box>
 
                                                    <Button disabled={!isChanged} variant="contained" onClick={()=>{
-                                                       handleUpdatePatient(modalData.patientId, modalData)
+                                                       if(modalData){
+                                                           handleUpdatePatient(modalData?.patientId, modalData)
+                                                       }
+
                                                    }}>Save Changes</Button>
                                                </Box>
                                            </Box>
@@ -531,8 +556,8 @@ const Patients = () => {
                                                        sx={{flex:3}}
                                                        label="Email"
                                                        variant="outlined"
-                                                       value={modalData.email}
-                                                       onChange={e=>setModalData({...modalData, email:e.target.value})}
+                                                       value={modalData?.email}
+                                                       onChange={e=>setModalData(modalData && {...modalData, email:e.target.value})}
                                                    />
                                                    <Button sx={{flex:1.5, height:"100%"}} variant="contained" onClick={handleChangeEmail} >change email</Button>
                                                </Box>
@@ -548,8 +573,8 @@ const Patients = () => {
                                                        label="Password"
                                                        variant="outlined"
                                                        type={showPassword ? "text" : "password"}
-                                                       value={modalData.password}
-                                                       onChange={e=>setModalData({...modalData, password:e.target.value})}
+                                                       value={modalData?.password}
+                                                       onChange={e=>setModalData(modalData && {...modalData, password:e.target.value})}
                                                        InputProps={{
                                                            endAdornment: (
                                                                <InputAdornment position="end">
@@ -787,7 +812,6 @@ const Patients = () => {
                             fetchPatients(page, rowsPerPage, searchText)
                         }} >See List</Button>
                     </Box>
-                    <hr width="100%" />
 
                     <Paper sx={{width: '100%', overflow: 'hidden'}}>
                         <TableContainer sx={{
@@ -825,7 +849,7 @@ const Patients = () => {
 
 
                                 <TableBody>
-                                    {rows.map((row, idx) => (
+                                    {rows.map((row) => (
                                        <TableRow>
                                             {columns.map((column) => {
                                                 const value = row[column.id];

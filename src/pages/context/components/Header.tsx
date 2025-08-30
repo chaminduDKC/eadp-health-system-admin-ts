@@ -25,7 +25,8 @@ import {styled} from "@mui/material/styles";
 import Dialog from "@mui/material/Dialog";
 import {Alert, Collapse} from "@mui/material";
 import AlertHook from '../../../alert/Alert.ts'
-import  {stopTokenRefreshInterval} from "../../../axios/axiosInstance.ts";
+import {startTokenRefreshInterval, stopTokenRefreshInterval} from "../../../axios/axiosInstance.ts";
+import {useEffect} from "react";
 
 
 
@@ -135,6 +136,9 @@ function ResponsiveAppBar() {
         }, 1000)
 
     }
+    useEffect(() => {
+        startTokenRefreshInterval();
+    }, []);
 
     return (
         <AppBar position="fixed" color="default" sx={{

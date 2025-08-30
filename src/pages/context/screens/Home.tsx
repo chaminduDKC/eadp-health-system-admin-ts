@@ -4,8 +4,6 @@ import {Button, Card, CardContent,  Avatar, Divider, Autocomplete, TextField, In
 import { Alert, Collapse, useTheme } from "@mui/material";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
-import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
-import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
 import EventIcon from "@mui/icons-material/Event";
 import GroupIcon from "@mui/icons-material/Group";
 import DoctorImage from "../../../../public/doctor.png";
@@ -21,6 +19,7 @@ import {DatePicker, LocalizationProvider} from "@mui/x-date-pickers";
 import type {Dayjs} from "dayjs";
 import MenuItem from "@mui/material/MenuItem";
 import {Visibility, VisibilityOff} from "@mui/icons-material";
+import axios from "axios";
 
 
 const itemVariant = {
@@ -68,6 +67,7 @@ const Home = () => {
     const availabilityUrl = import.meta.env.VITE_AVAILABILITY_API;
     const hospitalUrl = import.meta.env.VITE_HOSPITAL_API;
     const newsUrl = import.meta.env.VITE_NEWS_API;
+    const healthPackagesUrl = import.meta.env.VITE_HEALTH_PACKAGE_API;
 
     const theme = useTheme();
     const { openAlert, alertStatus, showAlert, closeAlert } = AlertHook();
@@ -233,7 +233,7 @@ const Home = () => {
                 params: {date: date}
             });
             if (response.data.data.length === 0) {
-                showAlert("failed-not-selected-or-available")
+                showAlert("No time available for selected doctor. Try another")
                 setAvailableSlots([]);
                 setTimeout(()=>{
                     closeAlert()
@@ -305,20 +305,7 @@ const Home = () => {
             iconColor: "#66bb6a",
             chartData: patientStatData,
         },
-        {
-            label: "Doctors Online",
-            value: 0,
-            icon: <LocalHospitalIcon />,
-            iconColor: "#ef5350",
-            chartData:[0],
-        },
-        {
-            label: "New Messages",
-            value: 0,
-            icon: <NotificationsActiveIcon />,
-            iconColor: "#ffa726",
-            chartData: [0],
-        },
+
     ];
     const clearAppointmentData = ()=>{
         setSelectedDate(null);
@@ -380,11 +367,6 @@ const Home = () => {
 
     }
 
-    // ----------------------------------------------
-
-
-    // ---------------------------------------------------------------
-    // ---------------------------------------------------------------
 
     const [fullName, setFullName] = useState<string>("");
     const [email, setEmail] = useState<string>("");
@@ -454,9 +436,19 @@ const Home = () => {
                 setOpenCreatePatientModal(false);
                 clearPatientDoctorData();
                 fetchMonthlyPatientOverview(numberOfMonths);
-            } catch (e) {
+            } catch (err) {
+                if(axios.isAxiosError(err)){
+                    if(err.response?.status === 409){
+                        showAlert("This email is already exist. Try another one")
+                        setTimeout(()=>{
+                            closeAlert()
+                        },3000)
+                        setLoading(false)
+                        return
+                    }
+                }
                 showAlert("Failed to create patient. Try again")
-                console.log(e)
+                console.log(err)
                 setLoading(false);
                 setTimeout(()=>{
                     closeAlert();
@@ -640,7 +632,7 @@ const Home = () => {
     }
     const [packageTitle, setPackageTitle] = useState<string>("")
     const [packageCategory, setPackageCategory] = useState<string>("")
-    const [packagePrice, setPackagePrice] = useState<number>()
+    const [packagePrice, setPackagePrice] = useState<number | string>()
 
     const [instruction, setInstruction] = useState<string>("")
     const [instructions, setInstructions] = useState<string[]>([])
@@ -670,7 +662,7 @@ const Home = () => {
         setTests([])
         setTest("")
         setInstruction("")
-        setPackagePrice()
+        setPackagePrice(0)
         setPackageCategory("")
         setPackageTitle("")
     }
@@ -686,7 +678,7 @@ const Home = () => {
             instructionsList:instructions,
             testList:tests
         }
-        await axiosInstance.post("http://localhost:9095/api/health-packages/create-health-package", createdPackage).then(res=>{
+        await axiosInstance.post(`${healthPackagesUrl}/create-health-package`, createdPackage).then(res=>{
             console.log(res)
             clearPackageData();
             showAlert("Package added successfully")
@@ -697,6 +689,11 @@ const Home = () => {
         })
 
     }
+    const [openAnnounceModal, setOpenAnnounceModal] = useState<boolean>(false);
+    const handleCloseAnnounceModal = ()=>{
+        setOpenAnnounceModal(false);
+    }
+
     return (
         <Box
             sx={{
@@ -719,6 +716,21 @@ const Home = () => {
                 },
             }}
         >
+
+            {/*announce modal*/}
+
+            <ReusableModal
+                title={"Send an Announcement"}
+                onClose={handleCloseAnnounceModal}
+                actions={[{label:"close", onClick:handleCloseAnnounceModal}]}
+                open={openAnnounceModal}
+                content={
+                    <Box>
+                        <Typography>Not Available</Typography>
+                    </Box>
+                }
+            />
+
             {/*packages modal*/}
 
             <ReusableModal
@@ -1145,6 +1157,7 @@ const Home = () => {
                 {
                     label: loading ? "creating" :"create", disabled:loading,
                     onClick: (e)=>{
+                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                         // @ts-expect-error
                         handleCreateDoctor(e)
                     },
@@ -1321,7 +1334,7 @@ const Home = () => {
             {/*specialization modal*/}
             <ReusableModal onClose={handleCloseSpecializationModal} open={openSpecializationModal} title="Add new specialization" actions={
                 [
-                    {label:"close", onClick:handleCloseHospitalModal, variant:"outlined" },
+                    {label:"close", onClick:handleCloseSpecializationModal, variant:"outlined" },
                     {label: loading ? "creating" : "Create", onClick: handleCreateSpecialization, variant: "contained", disabled:!loading}
                 ]
             } content={
@@ -1506,7 +1519,7 @@ const Home = () => {
                                     data={stat.chartData}
                                     height={50}
                                     showTooltip={true}
-                                    colors={[stat.iconColor]}
+                                    color={stat.iconColor}
                                     curve="monotoneX"
                                 />
                             </CardContent>
@@ -1625,7 +1638,7 @@ const Home = () => {
                             }} fullWidth variant="outlined" sx={{ mb: 2 }}>
                                 add new specialization
                             </Button>
-                            <Button sx={{ mb: 2 }} fullWidth variant="outlined">Send Announcement</Button>
+                            <Button sx={{ mb: 2 }} onClick={()=> setOpenAnnounceModal(true)} fullWidth variant="outlined">Send Announcement</Button>
                             <Button onClick={()=>{
                                 setOpenCreateNewsModal(true)
                             }} fullWidth variant="outlined">Create a news</Button>

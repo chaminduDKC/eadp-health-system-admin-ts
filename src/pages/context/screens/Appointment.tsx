@@ -200,7 +200,6 @@ const Appointment:React.FC = ()=> {
             if(response.length === 0){
                 showAlert("No patients available now. Please try again")
             } else{
-                console.log("HiHi")
                 const patientNames = response.map((p: Patient) => ({
                     id: p.patientId,
                     name: p.name,
@@ -380,7 +379,6 @@ const Appointment:React.FC = ()=> {
 
                 {params: {searchText:search, page: pageNumber, size: size}}
             );
-            console.log(response)
             setBookings(response.data.data.bookingList);
             setBookingsCount(response.data.data.bookingCount);
         } catch (error) {
@@ -409,8 +407,7 @@ const Appointment:React.FC = ()=> {
                 { params:{
                         status: status
                     },headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("access_token")}` } }
-            ).then((res)=>{
-                console.log(res)
+            ).then(()=>{
                 showAlert("Updated")
                 fetchBookings(page, rowsPerPage, searchText);
                 handleCloseStatusModal();

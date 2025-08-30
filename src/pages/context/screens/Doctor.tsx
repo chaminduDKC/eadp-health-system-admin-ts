@@ -4,7 +4,7 @@ import  { Dayjs } from 'dayjs';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
-import React, {useEffect, useState} from "react";
+import React, {type SyntheticEvent, useEffect, useState} from "react";
 import {Autocomplete, Button, CircularProgress,  Tab, Tabs, TextField} from "@mui/material";
 import {TimePicker} from "@mui/x-date-pickers";
 import axiosInstance, {startTokenRefreshInterval} from "../../../axios/axiosInstance.ts";
@@ -37,9 +37,9 @@ type Hospital = {
 }
 type Doctor = {
     image?:string,
-    name:string,
-    email: string,
-    phoneNumber: string,
+    name?:string,
+    email?: string,
+    phoneNumber?: string,
     specialization: string,
     experience: string,
     hospital: string,
@@ -62,19 +62,17 @@ type Column = {
 
 const columns:Column[] = [
     { id: 'name', label: 'Name', minWidth: 100 },
-    //{ id: 'phoneNumber', label: 'Phone', minWidth: 60 },
-    // { id: 'email', label: 'Email', minWidth: 100 },
-    // { id: 'city', label: 'City', minWidth: 80 },
     { id: 'hospital', label: 'Hospital', minWidth: 100 },
     { id: 'specialization', label: 'Specialization', minWidth: 100 },
-    // { id: 'address', label: 'Address', minWidth: 100 },
-
-
 ];
 
+interface CustomTabPanelProps extends React.HTMLAttributes<HTMLDivElement> {
+    children?: React.ReactNode;
+    index: number;
+    value:number;
+}
 
-
-function CustomTabPanel(props) {
+function CustomTabPanel(props:CustomTabPanelProps) {
     const { children, value, index, ...other } = props;
 
     return (
@@ -104,7 +102,7 @@ function a11yProps(index:number) {
 }
 
 
-const Doctor = () => {
+const Doctor:React.FC = () => {
 
     const specializationUrl = import.meta.env.VITE_SPECIALIZATION_API;
     const doctorUrl = import.meta.env.VITE_DOCTOR_API;
@@ -115,7 +113,7 @@ const Doctor = () => {
 
     const [value, setValue] = useState(0);
 
-    const handleChange = (_event:any, newValue:number) => {
+    const handleChange = (_event:SyntheticEvent, newValue:number) => {
         setValue(newValue);
     };
 
@@ -191,7 +189,7 @@ const Doctor = () => {
         }
     }
 
-    const handleChangePage = (_event: any, newPage:number) => {
+    const handleChangePage = (_event:React.MouseEvent<HTMLButtonElement> | null, newPage:number) => {
         setPage(newPage);
         fetchDoctors(newPage, rowsPerPage, searchText);
     };
@@ -304,18 +302,17 @@ const Doctor = () => {
 
     const handleCloseDoctorDetailsModal = () => {
         setOpenDoctorDetailModal(false);
-        setModalData({})
+        setModalData(null)
         setLoading(false);
         setIsChanged(false);
     };
 
-    const [alreadySelectedDates, setAlreadySelectedDates] = useState([]);
-    const [modalData, setModalData] = useState<Doctor | null>()
+    const [alreadySelectedDates, setAlreadySelectedDates] = useState<string[]>([]);
+    const [modalData, setModalData] = useState<Partial<Doctor | null>>()
 
     const fetchAlreadySelectedDates = async (doctorId:string)=>{
         await axiosInstance.get(`${availabilityUrl}/find-selected-dates-by-doctor-id/${doctorId}`).then(res=>{
             setAlreadySelectedDates(res.data.data)
-            console.log(res.data.data);
         }).catch(err=>{
             showAlert("failed-availabilities")
             console.log(err)
@@ -402,6 +399,13 @@ const Doctor = () => {
             showAlert("Email changed successfully")
             handleCloseDoctorDetailsModal();
         }).catch((err)=>{
+            if(err.status === 409){
+                showAlert("This email is already exist. Try another one")
+                setTimeout(()=>{
+                    closeAlert()
+                },3000)
+                setLoading(false)
+            }
             console.log(err)
             showAlert("failed to change email")
         })
@@ -470,7 +474,13 @@ const Doctor = () => {
                     actions={[
                         {label:"Cancel", onClick:handleCloseDeleteModal},
                         {label:"Delete", onClick:()=>{
+                            if(modalData?.doctorId && modalData?.userId){
                                 handleDeleteDoctor(modalData?.doctorId, modalData?.userId)
+                            } else {
+                                showAlert("Something went wrong")
+                                return;
+                            }
+
                             }}
                     ]}
                 />
@@ -480,7 +490,7 @@ const Doctor = () => {
                 <ReusableModal
                     open={openDoctorDetailModal}
                     onClose={handleCloseDoctorDetailsModal}
-                    title={"Create Doctor"}
+                    title={"Doctor Details"}
                     content={
                         <Box sx={{ height:"600px" }}>
                             <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
@@ -557,9 +567,11 @@ const Doctor = () => {
                                                 marginBottom:"10px",
                                                 marginRight:"10px"
                                             }} autoFocus onClick={()=>{
-                                            handleAvailableTimes(modalData?.doctorId).then(()=>{
-                                                // handleCloseModal();
-                                            })
+                                                if(modalData?.doctorId) {
+                                                    handleAvailableTimes(modalData?.doctorId).then(()=>{
+                                                        // handleCloseModal();
+                                                    })
+                                                }
                                         }}>
                                             Save
                                         </Button>
@@ -605,8 +617,10 @@ const Doctor = () => {
                                                 variant="outlined"
                                                 value={modalData?.name}
                                                 onChange={e=>{
-                                                    setModalData({...modalData, name:e.target.value})
-                                                    setIsChanged(true)
+                                                    if(e.target.value) {
+                                                        setModalData({...modalData, name:e.target.value})
+                                                        setIsChanged(true)
+                                                    }
                                                 }}
                                                 InputProps={{
                                                     endAdornment: (
@@ -760,12 +774,14 @@ const Doctor = () => {
                                                     ),
                                                     readOnly: !(editField === "specialization")
                                                 }}
-                                                value={specializations.find(p => p.specialization === modalData.specialization) || null}
+                                                value={specializations.find(p => p.specialization === modalData?.specialization) || null}
                                                 onChange={(_event, newValue) => {
                                                     if (newValue) {
                                                         // patient ID
-                                                        modalData.specialization = newValue.specialization; // just the name string
-                                                        setIsChanged(true)
+                                                        if(modalData) {
+                                                            modalData.specialization = newValue.specialization; // just the name string
+                                                            setIsChanged(true)
+                                                        }
 
                                                     } else {
                                                         // setDoctor(null);

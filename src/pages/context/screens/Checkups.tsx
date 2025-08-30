@@ -71,7 +71,7 @@ export default function Checkups() {
     const [page, setPage] = React.useState(0);
     const [rowsPerPage, setRowsPerPage] = React.useState(2);
 
-    const handleChangePage = (_event: React.MouseEvent<HTMLButtonElement>, newPage: number) => {
+    const handleChangePage = (_event: React.MouseEvent<HTMLButtonElement> | null, newPage: number) => {
         setPage(newPage);
         fetchPackages(newPage, rowsPerPage, "");
     };
@@ -88,7 +88,7 @@ export default function Checkups() {
         fetchPackages(page, rowsPerPage, "");
     }, []);
     const [packages, setPackages] = useState<Package[]>([]);
-    const [packageCount, setPackageCount] = useState<number>()
+    const [packageCount, setPackageCount] = useState<number>(0)
 
 
     const fetchPackages = async (page:number, size:number, searchText:string)=>{
@@ -175,6 +175,7 @@ export default function Checkups() {
             {/**/}
             <ReusableModal
                 title={"Delete?"}
+                maxWidth="xs"
                 open={openDetailModal}
                 onClose={handleCloseDetailModal}
                 actions={[{label:"close", onClick:handleCloseDetailModal}, {label: "delete", onClick:()=>{
