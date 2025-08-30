@@ -7,7 +7,7 @@ import TableContainer from '@mui/material/TableContainer';
 import TableHead from '@mui/material/TableHead';
 import TablePagination from '@mui/material/TablePagination';
 import TableRow from '@mui/material/TableRow';
-import axiosInstance from "../../../axios/axiosInstance.ts";
+import axiosInstance, {startTokenRefreshInterval} from "../../../axios/axiosInstance.ts";
 import {useEffect, useState} from "react";
 import Box from "@mui/material/Box";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -85,6 +85,7 @@ export default function Checkups() {
     };
 
     useEffect(() => {
+        startTokenRefreshInterval()
         fetchPackages(page, rowsPerPage, "");
     }, []);
     const [packages, setPackages] = useState<Package[]>([]);
